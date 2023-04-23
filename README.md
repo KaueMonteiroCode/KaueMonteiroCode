@@ -1,35 +1,8 @@
-- Meus Projetos de Estudo 💻
-- Este é o repositório onde eu compartilho todos os projetos que eu desenvolvo enquanto estou estudando programação e tecnologia. Eu espero que este espaço possa mostrar minha evolução e meu progresso como desenvolvedor, e também servir como um portfólio para futuros empregadores. 🚀
+![GitHub stats](https://github-readme-stats.vercel.app/api?username=KaueMonteiroCode&show_icons=true&theme=dracula&count_private=true&include_all_commits=true&hide=stars)
 
-- Projetos 📂
-  - 📁 Projeto 1: Breve descrição do projeto, habilidades/práticas utilizadas, e o que aprendi.
-  - 📁 Projeto 2: Breve descrição do projeto, habilidades/práticas utilizadas, e o que aprendi.
-  - 📁 Projeto 3: Breve descrição do projeto, habilidades/práticas utilizadas, e o que aprendi.
-  - ...
+![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=KaueMonteiroCode&layout=compact&theme=dracula)
 
-- Tecnologias 🚀
-  - 🔧 Tecnologia 1
-  - 🔧 Tecnologia 2
-  - 🔧 Tecnologia 3
-  - ...
+![GitHub Activity Graph](https://activity-graph.herokuapp.com/graph?username=KaueMonteiroCode&bg_color=1F222E&color=F8D866&line=F85D7F&point=FFFFFF&hide_border=true)
 
-- Aprendizados 🎓
-  - 👨‍💻 Habilidade/prática 1
-  - 👨‍💻 Habilidade/prática 2
-  - 👨‍💻 Habilidade/prática 3
-  - ...
+![Profile views](https://gpvc.arturio.dev/KaueMonteiroCode)
 
-- Contato 📧
-  - 🔗 LinkedIn
-  - 🔗 Twitter
-  - ...
-
-![GitHub stats](https://github-readme-stats.vercel.app/api?username=KaueMonteiroCode&show_icons=true&theme=dark)
-
-![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=KaueMonteiroCode&layout=compact&theme=dark)
-
-![GitHub Contributions](https://github-readme-streak-stats.herokuapp.com/?user=KaueMonteiroCode&theme=dark)
-
-![GitHub Activity Graph](https://activity-graph.herokuapp.com/graph?username=KaueMonteiroCode&theme=dracula)
-
-![Snake animation](https://github.com/KaueMonteiroCode/KaueMonteiroCode/blob/output/github-contribution-grid-snake.svg)
