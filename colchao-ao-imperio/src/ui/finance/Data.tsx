@@ -1,0 +1,90 @@
+import { useRef, useState } from 'react';
+import { formatDateBR, todayISO } from '../../core/dates';
+import { formatBRL } from '../../core/money';
+import { exportCSV, interpretCSV, type ImportRow } from '../../finance/csv';
+import * as A from '../../state/actions';
+import type { SaveData } from '../../state/types';
+import { act, errToast, Modal, toast } from '../common';
+import { downloadFile } from '../Settings';
+
+export function DataView({ save }: { save: SaveData }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [rows, setRows] = useState<ImportRow[] | null>(null);
+  const [acc, setAcc] = useState(save.finance.accounts[0]?.id ?? '');
+  const [skipDup, setSkipDup] = useState(true);
+  const [incDeleted, setIncDeleted] = useState(false);
+
+  const doImport = () => {
+    if (!rows) return;
+    let n = 0, skipped = 0;
+    const cats = save.finance.categories;
+    const accs = save.finance.accounts;
+    for (const r of rows) {
+      if (r.error || (skipDup && r.duplicate)) { skipped++; continue; }
+      const catId = r.categoryName ? cats.find((c) => c.name.toLowerCase() === r.categoryName!.toLowerCase())?.id : undefined;
+      const accId = (r.accountName && accs.find((a) => a.name.toLowerCase() === r.accountName!.toLowerCase())?.id) || acc;
+      const ok = act(() => { A.addTransaction({ kind: r.kind, amount: r.amount, date: r.date, accountId: accId, categoryId: catId, description: r.description, status: r.date > todayISO() ? 'pending' : 'confirmed' }); return true; });
+      if (ok) n++; else skipped++;
+    }
+    toast(`${n} lançamentos importados${skipped ? `, ${skipped} ignorados` : ''}.`, { kind: 'ok' });
+    setRows(null);
+  };
+
+  return (
+    <>
+      <div className="card">
+        <b>Exportar CSV</b>
+        <p className="small muted">Planilha com todos os lançamentos (separador ";", valores com vírgula, abre no Excel/LibreOffice/Google Planilhas).</p>
+        <label className="row small"><input type="checkbox" checked={incDeleted} onChange={(e) => setIncDeleted(e.target.checked)} style={{ width: 'auto' }} /> Incluir excluídos</label>
+        <button className="btn primary" onClick={() => { downloadFile(`lancamentos-${todayISO()}.csv`, exportCSV(save.finance, incDeleted), 'text/csv;charset=utf-8'); A.visit('csv-export'); }}>Baixar CSV</button>
+      </div>
+      <div className="card">
+        <b>Importar CSV</b>
+        <p className="small muted">Colunas mínimas: <code>data</code> e <code>valor</code> (negativo = despesa). Opcionais: <code>descricao</code>, <code>tipo</code>, <code>categoria</code>, <code>conta</code>. Você revisa tudo antes de confirmar.</p>
+        <label>Conta padrão para as linhas sem conta</label>
+        <select value={acc} onChange={(e) => setAcc(e.target.value)}>{save.finance.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        <button className="btn" style={{ marginTop: 8 }} disabled={!acc} onClick={() => fileRef.current?.click()}>Escolher arquivo CSV</button>
+        {!save.finance.accounts.length && <div className="small neg">Cadastre uma conta antes de importar.</div>}
+        <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={async (e) => {
+          const f = e.target.files?.[0]; e.target.value = '';
+          if (!f) return;
+          try { setRows(interpretCSV(await f.text(), save.finance)); } catch (err) { errToast(err); }
+        }} />
+      </div>
+      <div className="card">
+        <b>Histórico de alterações (auditoria)</b>
+        <div className="list" style={{ marginTop: 6, maxHeight: 320, overflowY: 'auto' }}>
+          {[...save.finance.audit].reverse().slice(0, 200).map((a, i) => (
+            <div key={i} className="small" style={{ borderBottom: '1px solid var(--line)', padding: '4px 0' }}>
+              <span className="muted">{new Date(a.at).toLocaleString('pt-BR')}</span> · <b>{a.action}</b><div className="tiny muted ellipsis">{a.detail}</div>
+            </div>
+          ))}
+          {!save.finance.audit.length && <div className="small muted">Nada registrado ainda.</div>}
+        </div>
+      </div>
+      {rows && (
+        <Modal title="Revisar importação" onClose={() => setRows(null)} wide>
+          <div className="small">{rows.filter((r) => !r.error).length} válidas · {rows.filter((r) => r.error).length} com erro · {rows.filter((r) => r.duplicate).length} possíveis duplicadas</div>
+          <label className="row small"><input type="checkbox" checked={skipDup} onChange={(e) => setSkipDup(e.target.checked)} style={{ width: 'auto' }} /> Ignorar possíveis duplicadas</label>
+          <div style={{ maxHeight: 340, overflowY: 'auto', marginTop: 8 }}>
+            <table className="tbl">
+              <thead><tr><th>Linha</th><th>Data</th><th>Tipo</th><th>Descrição</th><th className="r">Valor</th><th /></tr></thead>
+              <tbody>{rows.map((r) => (
+                <tr key={r.line} style={{ opacity: r.error || (skipDup && r.duplicate) ? 0.5 : 1 }}>
+                  <td>{r.line}</td><td>{r.date ? formatDateBR(r.date) : '—'}</td><td>{r.kind === 'income' ? 'receita' : r.kind === 'expense' ? 'despesa' : r.kind}</td>
+                  <td className="ellipsis" style={{ maxWidth: 180 }}>{r.description}</td><td className="r">{formatBRL(r.amount)}</td>
+                  <td className="tiny">{r.error ? <span className="neg">{r.error}</span> : r.duplicate ? <span className="gold">duplicada?</span> : ''}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div className="hint" style={{ marginTop: 8 }}>Transferências no CSV são importadas como despesa e devem ser revisadas, para evitar contar a mesma movimentação duas vezes.</div>
+          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+            <button className="btn ghost" onClick={() => setRows(null)}>Cancelar</button>
+            <button className="btn primary" onClick={doImport}>Importar</button>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
