@@ -12,7 +12,7 @@ const css = html.match(/<link rel="stylesheet" crossorigin href="\.\/(assets\/[^
 if (!js || !css) throw new Error('Não achei os arquivos do build em dist/index.html');
 const jsCode = fs.readFileSync(path.join(dist, js), 'utf8').replace(/<\/script/gi, '<\\/script');
 const cssCode = fs.readFileSync(path.join(dist, css), 'utf8').replace(/<\/style/gi, '<\\/style');
-const out = `<title>Do Colchão ao Império</title>
+let out = `<title>Do Colchão ao Império</title>
 <meta name="theme-color" content="#14121c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
@@ -22,7 +22,11 @@ html,body{height:100%;background:#14121c;color-scheme:dark}
 <div id="root"></div>
 <script type="module">${jsCode}</script>
 `;
-const target = process.argv[2] ?? path.resolve('dist-artifact/colchao-ao-imperio.html');
+const standalone = process.argv.includes('--standalone');
+const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const target = args[0] ?? path.resolve(standalone ? 'dist-artifact/Colchao-ao-Imperio.html' : 'dist-artifact/colchao-ao-imperio.html');
+// --standalone: documento HTML completo, para abrir com dois cliques direto do disco
+if (standalone) out = `<!doctype html>\n<html lang="pt-BR">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n${out.replace('<div id="root"></div>', '</head>\n<body>\n<div id="root"></div>')}</body>\n</html>\n`;
 fs.mkdirSync(path.dirname(target), { recursive: true });
 fs.writeFileSync(target, out);
 console.log('ok', target, (out.length / 1024).toFixed(0) + ' KB');

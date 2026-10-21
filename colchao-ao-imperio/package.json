@@ -11,7 +11,8 @@
     "e2e": "node scripts/e2e.mjs",
     "qa": "node scripts/qa.mjs",
     "visual": "node scripts/visual.mjs",
-    "build:page": "vite build && node scripts/build-artifact.mjs"
+    "build:page": "vite build && node scripts/build-artifact.mjs",
+    "build:file": "vite build && node scripts/build-artifact.mjs --standalone"
   },
   "dependencies": {
     "react": "^19.2.0",
