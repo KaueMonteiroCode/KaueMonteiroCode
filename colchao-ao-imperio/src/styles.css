@@ -234,3 +234,31 @@ table.tbl td.r, table.tbl th.r { text-align: right; }
 @media (max-width: 720px) {
   .app.panel-wide .toasts, .app.panel-open .toasts { top: 8px; bottom: auto; }
 }
+
+/* ---------- celular: dock com "Mais", HUD compacto, áreas seguras ---------- */
+.more-btn { display: none !important; }
+.more-menu {
+  position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 13;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px; background: rgba(26,22,36,0.97); border-radius: 8px;
+  box-shadow: 0 0 0 2px #0e0b14, 0 10px 30px rgba(0,0,0,0.5); animation: pop .15s;
+}
+.more-menu button { background: var(--panel-3); border: none; border-radius: 6px; width: 84px; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--ink); font-size: 11px; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.35), 0 0 0 2px #0e0b14; }
+.hud-top { top: calc(8px + env(safe-area-inset-top, 0px)); left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); }
+.dock { bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+.drawer-body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 720px) {
+  .dock .sec { display: none; }
+  .more-btn { display: flex !important; }
+  .dock { overflow: visible; }
+  .dock button { width: 58px; min-width: 0; flex: 1; }
+  .hud-top { gap: 6px; flex-wrap: nowrap; }
+  .hud-top .snd { display: none; }
+  .hud-player > div { min-width: 0 !important; max-width: 108px; }
+  .hud-player .tiny { display: none; }
+  .hud-stat .val { font-size: 10px; }
+  .hud-stat .lbl { font-size: 9px; letter-spacing: .5px; }
+  .toasts { top: calc(6px + env(safe-area-inset-top, 0px)); bottom: auto; }
+  .editbar { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 16px); }
+  .zoombar { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+  .drawer, .drawer.wide { height: calc(100% - 64px - env(safe-area-inset-top, 0px)); }
+}

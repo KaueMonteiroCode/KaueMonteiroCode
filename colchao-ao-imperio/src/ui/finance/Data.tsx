@@ -4,8 +4,7 @@ import { formatBRL } from '../../core/money';
 import { exportCSV, interpretCSV, type ImportRow } from '../../finance/csv';
 import * as A from '../../state/actions';
 import type { SaveData } from '../../state/types';
-import { act, errToast, Modal, toast } from '../common';
-import { downloadFile } from '../Settings';
+import { act, errToast, ExportBox, Modal, toast } from '../common';
 
 export function DataView({ save }: { save: SaveData }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -13,6 +12,7 @@ export function DataView({ save }: { save: SaveData }) {
   const [acc, setAcc] = useState(save.finance.accounts[0]?.id ?? '');
   const [skipDup, setSkipDup] = useState(true);
   const [incDeleted, setIncDeleted] = useState(false);
+  const [csv, setCsv] = useState<string | null>(null);
 
   const doImport = () => {
     if (!rows) return;
@@ -36,7 +36,7 @@ export function DataView({ save }: { save: SaveData }) {
         <b>Exportar CSV</b>
         <p className="small muted">Planilha com todos os lançamentos (separador ";", valores com vírgula, abre no Excel/LibreOffice/Google Planilhas).</p>
         <label className="row small"><input type="checkbox" checked={incDeleted} onChange={(e) => setIncDeleted(e.target.checked)} style={{ width: 'auto' }} /> Incluir excluídos</label>
-        <button className="btn primary" onClick={() => { downloadFile(`lancamentos-${todayISO()}.csv`, exportCSV(save.finance, incDeleted), 'text/csv;charset=utf-8'); A.visit('csv-export'); }}>Baixar CSV</button>
+        <button className="btn primary" onClick={() => { setCsv(exportCSV(save.finance, incDeleted)); A.visit('csv-export'); }}>Exportar CSV</button>
       </div>
       <div className="card">
         <b>Importar CSV</b>
@@ -62,6 +62,7 @@ export function DataView({ save }: { save: SaveData }) {
           {!save.finance.audit.length && <div className="small muted">Nada registrado ainda.</div>}
         </div>
       </div>
+      {csv != null && <ExportBox title="Exportar lançamentos" filename={`lancamentos-${todayISO()}.csv`} mime="text/csv;charset=utf-8" content={csv} onClose={() => setCsv(null)} />}
       {rows && (
         <Modal title="Revisar importação" onClose={() => setRows(null)} wide>
           <div className="small">{rows.filter((r) => !r.error).length} válidas · {rows.filter((r) => r.error).length} com erro · {rows.filter((r) => r.duplicate).length} possíveis duplicadas</div>

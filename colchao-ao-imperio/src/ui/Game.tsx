@@ -36,6 +36,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmSell, setConfirmSell] = useState<number | null>(null);
+  const [more, setMore] = useState(false);
   const afterPlace = useRef<EngineMode>('play');
   const progress = useMemo(() => computeProgress(save), [save]);
   const tot = useMemo(() => totals(save.finance), [save]);
@@ -69,7 +70,6 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
     afterPlace.current = back;
     setPanel(null);
     setMode('place', { uid, defId: it.defId, rot: it.placed?.rot ?? (def.place === 'wall' ? 1 : 0) });
-    toast(`Escolha onde colocar: ${def.name}`, { icon: 'hammer', sub: 'Toque/clique no ambiente. R ou o botão Girar para rotacionar.' });
   }, [setMode]);
 
   useEffect(() => {
@@ -85,6 +85,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
       onSelect: (uid) => { sfx.click(); setSelected(uid); },
       onUse: (def) => { if (def.use === 'computer') { setFinanceTab('resumo'); setPanel('finance'); A.visit('fin'); } },
       onHint: (t) => toast(t),
+      onPreview: () => sfx.click(),
     };
   }, [setMode]);
 
@@ -173,7 +174,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
         </button>
         <div className="grow" />
         {events.map((ev) => <div key={ev.id} className="hud-box tiny hud-hide-sm" style={{ color: ev.color, maxWidth: 200 }}><b>EVENTO</b><br />{ev.name}</div>)}
-        <button className="hud-box btn icon" onClick={() => A.setSettings({ sound: !save.settings.sound })} aria-label="Som" title={save.settings.sound ? 'Som ligado' : 'Som desligado'} style={{ opacity: save.settings.sound ? 1 : 0.45 }}><Icon name="sound" /></button>
+        <button className="hud-box btn icon snd" onClick={() => A.setSettings({ sound: !save.settings.sound })} aria-label="Som" title={save.settings.sound ? 'Som ligado' : 'Som desligado'} style={{ opacity: save.settings.sound ? 1 : 0.45 }}><Icon name="sound" /></button>
       </div>
 
       {/* zoom */}
@@ -201,9 +202,10 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
       )}
       {mode === 'place' && placing && (
         <div className="editbar">
-          <div className="small" style={{ alignSelf: 'center' }}>Posicionando <b>{getItem(placing.defId)?.name}</b></div>
+          <div className="small" style={{ alignSelf: 'center', flexBasis: '100%', textAlign: 'center' }}>Posicionando <b>{getItem(placing.defId)?.name}</b><div className="tiny muted">Toque no chão para mudar o lugar · toque de novo para colocar</div></div>
           <button className="btn sm" onClick={() => { engineRef.current?.rotatePlace(); setPlacing({ ...engineRef.current!.place! }); }}><Icon name="rotate" />Girar</button>
           <button className="btn sm" onClick={() => setMode(afterPlace.current)}>Cancelar</button>
+          <button className="btn sm primary" onClick={() => engineRef.current?.confirmPlace()}><Icon name="check" />Colocar aqui</button>
         </div>
       )}
 
@@ -213,12 +215,20 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
         <button className={panel === 'finance' ? 'on' : ''} onClick={() => openPanel('finance')}><Icon name="money" size={20} />Finanças</button>
         <button className={panel === 'shop' ? 'on' : ''} onClick={() => openPanel('shop')}><Icon name="shop" size={20} />Loja</button>
         <button className={mode === 'edit' ? 'on' : ''} onClick={() => { setPanel(null); setMode(mode === 'edit' ? 'play' : 'edit'); }}><Icon name="brush" size={20} />Decorar</button>
-        <button className={panel === 'inventory' ? 'on' : ''} onClick={() => openPanel('inventory')}><Icon name="box" size={20} />Inventário</button>
+        <button className={`sec ${panel === 'inventory' ? 'on' : ''}`} onClick={() => openPanel('inventory')}><Icon name="box" size={20} />Inventário</button>
         <button className={panel === 'missions' ? 'on' : ''} onClick={() => openPanel('missions')}><Icon name="target" size={20} />Missões{missionsReady > 0 && <span className="badge">{missionsReady}</span>}</button>
-        <button className={panel === 'achievements' ? 'on' : ''} onClick={() => openPanel('achievements')}><Icon name="trophy" size={20} />Conquistas</button>
-        <button className={panel === 'properties' ? 'on' : ''} onClick={() => openPanel('properties')}><Icon name="house" size={20} />Imóveis</button>
-        <button className={panel === 'settings' ? 'on' : ''} onClick={() => openPanel('settings')}><Icon name="gear" size={20} />Ajustes</button>
+        <button className={`sec ${panel === 'achievements' ? 'on' : ''}`} onClick={() => openPanel('achievements')}><Icon name="trophy" size={20} />Conquistas</button>
+        <button className={`sec ${panel === 'properties' ? 'on' : ''}`} onClick={() => openPanel('properties')}><Icon name="house" size={20} />Imóveis</button>
+        <button className={`sec ${panel === 'settings' ? 'on' : ''}`} onClick={() => openPanel('settings')}><Icon name="gear" size={20} />Ajustes</button>
+        <button className={`more-btn ${more ? 'on' : ''}`} onClick={() => { sfx.click(); setMore(!more); }} aria-expanded={more}><Icon name="star" size={20} />Mais</button>
       </nav>
+      {more && (
+        <div className="more-menu" role="menu">
+          {([['inventory', 'box', 'Inventário'], ['achievements', 'trophy', 'Conquistas'], ['properties', 'house', 'Imóveis'], ['avatar', 'person', 'Personagem'], ['settings', 'gear', 'Ajustes']] as const).map(([id, ic, label]) => (
+            <button key={id} role="menuitem" onClick={() => { setMore(false); openPanel(id); }}><Icon name={ic} size={22} />{label}</button>
+          ))}
+        </div>
+      )}
 
       {panel === 'finance' && <FinancePanel save={save} tab={financeTab} setTab={setFinanceTab} onClose={() => setPanel(null)} />}
       {panel === 'shop' && <ShopPanel save={save} progress={progress} onClose={() => setPanel(null)} onPlace={(uid) => startPlacing(uid)} />}

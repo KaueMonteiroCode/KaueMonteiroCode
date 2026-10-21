@@ -204,3 +204,33 @@ export function act<T>(fn: () => T, ok?: string): T | undefined {
     return undefined;
   }
 }
+
+/** Exportação que funciona mesmo onde downloads são bloqueados: baixar OU copiar o texto. */
+export function ExportBox({ title, filename, content, mime, onClose, note }: { title: string; filename: string; content: string; mime: string; onClose: () => void; note?: ReactNode }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [copied, setCopied] = useState(false);
+  const download = () => {
+    try {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { /* bloqueado: use copiar */ }
+  };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(content); setCopied(true); }
+    catch { ref.current?.select(); document.execCommand?.('copy'); setCopied(true); }
+  };
+  return (
+    <Modal title={title} onClose={onClose} wide>
+      {note && <div className="small muted" style={{ marginBottom: 8, lineHeight: 1.5 }}>{note}</div>}
+      <textarea ref={ref} readOnly value={content} rows={8} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }} onFocus={(e) => e.currentTarget.select()} />
+      <div className="small muted" style={{ marginTop: 6 }}>Se o download não começar (comum no celular), toque em Copiar e cole num bloco de notas, e-mail ou mensagem para você mesmo.</div>
+      <div className="row wrap" style={{ justifyContent: 'flex-end', marginTop: 10 }}>
+        <button className="btn" onClick={download}>Baixar {filename.split('.').pop()?.toUpperCase()}</button>
+        <button className="btn primary" onClick={copy}>{copied ? 'Copiado!' : 'Copiar texto'}</button>
+      </div>
+    </Modal>
+  );
+}

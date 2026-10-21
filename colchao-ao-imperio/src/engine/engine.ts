@@ -1,7 +1,7 @@
 import type { AvatarConfig, Placement, SaveData } from '../state/types';
 import { getItem, type ItemDef } from '../game/catalog';
 import { getProperty } from '../game/properties';
-import { checkPlacement, roomInfo, walkGrid, type RoomInfo } from '../game/room';
+import { checkPlacement, findFreeSpot, roomInfo, walkGrid, type RoomInfo } from '../game/room';
 import { getStyle, LIGHT_THEMES } from '../game/styles';
 import { drawAvatar, type AvatarAnim } from './avatar';
 import { isoX, isoY, screenToTile, shade, TH, TW, ZS, hsl } from './iso';
@@ -48,6 +48,7 @@ export interface EngineCallbacks {
   onPlaceInvalid?: (reason: string) => void;
   onUse?: (def: ItemDef, uid: number) => void;
   onHint?: (text: string) => void;
+  onPreview?: () => void;
 }
 
 const SAYINGS: Record<string, string[]> = {
@@ -177,7 +178,7 @@ export class GameEngine {
     if (key === this.staticKey) return;
     this.staticKey = key;
     // tamanho do canvas do mundo
-    const M = 48;
+    const M = 28;
     const wallPx = room.wallH * ZS;
     const w = (room.W + room.D) * (TW / 2) + M * 2;
     const h = (room.W + room.D) * (TH / 2) + wallPx + M * 2 + 24;
@@ -232,7 +233,7 @@ export class GameEngine {
   fit(instant = false) {
     if (!this.room) return;
     const cw = this.canvas.width - this.inset.right, ch = this.canvas.height - this.inset.bottom;
-    const zoom = Math.max(0.5, Math.min(4 * this.dpr, Math.min(cw / this.world.width, ch / this.world.height) * 0.92));
+    const zoom = Math.max(0.5, Math.min(4 * this.dpr, Math.min(cw / this.world.width, ch / this.world.height) * (cw < 800 * this.dpr ? 1.02 : 0.92)));
     const target = { x: this.world.width / 2 + this.inset.right / 2 / zoom, y: this.world.height / 2 + 10 + this.inset.bottom / 2 / zoom, zoom };
     if (instant) { this.cam = { ...target }; this.camTarget = null; } else this.camTarget = target;
   }
@@ -266,9 +267,29 @@ export class GameEngine {
     this.mode = m;
     this.place = m === 'place' ? place ?? null : null;
     this.hoverPlace = null;
+    this.lastTapKey = '';
     if (m !== 'edit') this.selected = null;
     this.staticKey = '';
     this.rebuild();
+    // fantasma inicial já visível: posição atual (ao mover) ou o primeiro lugar livre
+    if (m === 'place' && this.place && this.room && this.save) {
+      const def = getItem(this.place.defId);
+      const it = this.place.uid != null ? this.save.game.inventory.find((i) => i.uid === this.place!.uid) : undefined;
+      const start = it?.placed && it.placed.propertyId === this.room.propertyId ? it.placed : def ? findFreeSpot(this.room, { ...def }) : null;
+      if (start && def) {
+        this.place.rot = start.rot;
+        this.updateHoverPlace(def.place === 'wall' && start.rot === 0 ? start.y : start.x, start.y, def.place === 'wall');
+        this.lastTapKey = this.placeKey();
+      }
+    }
+  }
+  private lastTapKey = '';
+  private placeKey() { const h = this.hoverPlace; return h ? `${h.p.x},${h.p.y},${h.p.rot}` : ''; }
+  /** Confirma a posição do fantasma (botão "Colocar aqui"). */
+  confirmPlace() {
+    if (this.mode !== 'place' || !this.place || !this.hoverPlace) return;
+    if (!this.hoverPlace.ok) { this.cb.onPlaceInvalid?.(this.hoverPlace.reason ?? 'Posição inválida'); return; }
+    this.cb.onPlace?.(this.hoverPlace.p, this.place);
   }
   rotatePlace() {
     if (this.place) {
@@ -916,7 +937,15 @@ export class GameEngine {
       const wasDrag = this.drag?.moved;
       this.pointers.delete(e.pointerId);
       if (this.pointers.size === 0) {
-        if (!wasDrag) { this.hover(p.x, p.y); this.click(p.x, p.y); }
+        if (!wasDrag) {
+          // no toque, o 1º toque mostra a prévia; tocar de novo no mesmo lugar confirma
+          if (this.mode === 'place' && e.pointerType !== 'mouse') {
+            this.hover(p.x, p.y);
+            const k = this.placeKey();
+            if (k !== this.lastTapKey) { this.lastTapKey = k; this.cb.onPreview?.(); }
+            else this.click(p.x, p.y);
+          } else { this.hover(p.x, p.y); this.click(p.x, p.y); }
+        }
         this.drag = null;
       }
     };

@@ -35,6 +35,12 @@ async function open() {
 }
 
 const tap = async (page, loc) => { if (mobile) await loc.tap(); else await loc.click(); };
+async function dockBtn(page, name) {
+  const b = page.locator('.dock button', { hasText: name });
+  if (await b.isVisible()) return tap(page, b);
+  await tap(page, page.locator('.dock .more-btn'));
+  await tap(page, page.locator('.more-menu button', { hasText: name }));
+}
 const shot = (page, n) => page.screenshot({ path: path.join(SHOTS, `${mobile ? 'mobile-' : ''}${n}.png`) });
 
 async function coins(page) {
@@ -98,7 +104,7 @@ async function coins(page) {
     return null;
   });
   ok(!!spot, `tile livre encontrado ${JSON.stringify(spot?.tile)}`);
-  if (mobile) await page.touchscreen.tap(spot.x, spot.y); else { await page.mouse.move(spot.x, spot.y); await page.mouse.click(spot.x, spot.y); }
+  if (mobile) { await page.touchscreen.tap(spot.x, spot.y); await page.waitForTimeout(250); await shot(page, '03b-previa'); await page.touchscreen.tap(spot.x, spot.y); } else { await page.mouse.move(spot.x, spot.y); await page.mouse.click(spot.x, spot.y); }
   await page.waitForTimeout(600);
   const placed = await page.evaluate(() => {
     const raw = localStorage.getItem('colchao-ao-imperio:save');
@@ -129,7 +135,7 @@ async function coins(page) {
   await tap(page, page.locator('.tabs button', { hasText: 'Estatísticas' }));
   await page.waitForTimeout(300);
   await shot(page, '07-estatisticas');
-  await tap(page, page.locator('.dock button', { hasText: 'Conquistas' }));
+  await dockBtn(page, 'Conquistas');
   await page.waitForTimeout(300);
   await shot(page, '08-conquistas');
   await tap(page, page.locator('.dock button', { hasText: 'Missões' }));
