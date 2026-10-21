@@ -11,7 +11,7 @@ import { Seg } from '../common';
 interface Tip { x: number; y: number; html: React.ReactNode }
 
 function niceMax(v: number) {
-  if (v <= 0) return 100;
+  if (v <= 0) return 10000;
   const p = Math.pow(10, Math.floor(Math.log10(v)));
   const n = v / p;
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
@@ -20,7 +20,7 @@ const short = (c: Cents) => formatBRL(c, { compact: true }).replace('R$ ', '');
 
 function Bars({ data, onTip }: { data: { label: string; a: number; b: number; full: string }[]; onTip: (t: Tip | null) => void }) {
   const W = 640, H = 220, L = 46, B = 24, T = 10;
-  const max = niceMax(Math.max(1, ...data.flatMap((d) => [d.a, d.b])));
+  const max = niceMax(Math.max(10000, ...data.flatMap((d) => [d.a, d.b])));
   const bw = (W - L - 10) / data.length;
   const y = (v: number) => H - B - (v / max) * (H - B - T);
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * max);
@@ -56,7 +56,7 @@ function Bars({ data, onTip }: { data: { label: string; a: number; b: number; fu
 function Line({ data, label, color = 'var(--income)', dashedFrom, onTip }: { data: { label: string; v: number; full: string }[]; label: string; color?: string; dashedFrom?: number; onTip: (t: Tip | null) => void }) {
   const W = 640, H = 200, L = 52, B = 24, T = 12;
   const minV = Math.min(0, ...data.map((d) => d.v));
-  const maxV = niceMax(Math.max(1, ...data.map((d) => d.v)));
+  const maxV = niceMax(Math.max(minV < 0 ? 0 : 10000, ...data.map((d) => d.v)));
   const span = maxV - minV || 1;
   const x = (i: number) => L + (i * (W - L - 16)) / Math.max(1, data.length - 1);
   const y = (v: number) => H - B - ((v - minV) / span) * (H - B - T);

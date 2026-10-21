@@ -147,7 +147,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   const title = progress.titles.find((t) => t.id === save.profile.titleId && t.unlocked)?.name ?? progress.titles[0].name;
 
   return (
-    <div className="app">
+    <div className={`app ${panel ? (['shop', 'finance', 'inventory', 'achievements'].includes(panel) ? 'panel-wide' : 'panel-open') : ''}`}>
       <div className="canvas-wrap"><canvas ref={canvasRef} aria-label="Ambiente do jogo" /></div>
 
       {/* HUD superior */}

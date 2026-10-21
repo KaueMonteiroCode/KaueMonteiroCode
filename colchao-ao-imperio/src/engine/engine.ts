@@ -32,6 +32,7 @@ export interface Actor {
   seatUid?: number;
   idleUntil?: number;
   name?: string;
+  lie?: number;
 }
 
 interface Particle { x: number; y: number; vx: number; vy: number; c: string; life: number; max: number; r: number; kind: 'confetti' | 'coin' | 'spark' }
@@ -380,9 +381,16 @@ export class GameEngine {
     a.seatUid = uid;
     a.x = best[0] + 0.5; a.y = best[1] + 0.5;
     if (def.sleep != null) {
+      // deita no centro da cama, cabeça do lado do travesseiro
+      const fp = rotFootprint(def.w, def.d, pi.p.rot);
+      const ang = Math.atan2(1, 2); // inclinação isométrica (~26,6°)
+      const A = Math.PI / 2 - ang; // 63,4°
+      const lies = [-A, A, Math.PI - A, Math.PI + A];
+      a.x = pi.p.x + fp.w / 2; a.y = pi.p.y + fp.d / 2;
       a.z = def.sleep;
       a.anim = 'sleep';
-      a.dir = pi.p.rot % 2 === 0 ? 0 : 1;
+      a.lie = lies[pi.p.rot & 3];
+      a.dir = 0;
       return;
     }
     a.z = def.sit ?? 0.45;
@@ -628,7 +636,7 @@ export class GameEngine {
       const h = a.anim === 'sleep' ? 0.5 : a.anim === 'sit' || a.anim === 'type' ? 1.2 : 1.7;
       // dormindo: caixa alongada
       const s = a.anim === 'sleep'
-        ? { x0: a.x - 0.5, y0: a.y - 0.3, z0: a.z, x1: a.x + 0.5, y1: a.y + 0.3, z1: a.z + h }
+        ? { x0: a.x - 0.45, y0: a.y - 0.45, z0: a.z, x1: a.x + 0.45, y1: a.y + 0.45, z1: a.z + h }
         : { x0: a.x - r, y0: a.y - r, z0: a.z, x1: a.x + r, y1: a.y + r, z1: a.z + h };
       const sb = screenBounds(s);
       return { kind: 'actor', a, ...s, ...sb, sy0: sb.sy0 - 20, sx0: sb.sx0 - 14, sx1: sb.sx1 + 14 };
@@ -661,7 +669,7 @@ export class GameEngine {
       const a = d.a;
       ctx.save();
       ctx.translate(Math.round(this.O.x + isoX(a.x, a.y)), Math.round(this.O.y + isoY(a.x, a.y, a.z)));
-      drawAvatar(ctx, a.avatar, { dir: a.dir, anim: a.anim, t: this.reduceMotion ? 0 : this.t + a.id.length });
+      drawAvatar(ctx, a.avatar, { dir: a.dir, anim: a.anim, t: this.reduceMotion ? 0 : this.t + a.id.length, lie: a.lie });
       ctx.restore();
     }
   }
@@ -941,7 +949,8 @@ export class GameEngine {
     for (let i = list.length - 1; i >= 0; i--) {
       const d = list[i];
       if (d.kind === 'actor') continue;
-      if (w.x < d.sx0 || w.x > d.sx1 || w.y < d.sy0 || w.y > d.sy1) continue;
+      const lx = w.x - this.O.x, ly = w.y - this.O.y; // limites de tela são relativos à origem O
+      if (lx < d.sx0 || lx > d.sx1 || ly < d.sy0 || ly > d.sy1) continue;
       if (d.kind === 'box') {
         if (pointInBox(d, w.x - this.O.x, w.y - this.O.y)) return d.uid;
       } else if (Math.abs(w.x - d.sx) < 14 && w.y > d.sy - 40 && w.y < d.sy + 4) return d.uid;
@@ -960,7 +969,8 @@ export class GameEngine {
     }
     for (const d of this.flatList) {
       if (d.kind === 'actor') continue;
-      if (w.x < d.sx0 || w.x > d.sx1 || w.y < d.sy0 - 6 || w.y > d.sy1 + 6) continue;
+      const lx = w.x - this.O.x, ly = w.y - this.O.y;
+      if (lx < d.sx0 || lx > d.sx1 || ly < d.sy0 - 6 || ly > d.sy1 + 6) continue;
       const tile = screenToTile(w.x - this.O.x, w.y - this.O.y);
       if (tile.x >= d.x0 - 0.05 && tile.x <= d.x1 + 0.05 && tile.y >= d.y0 - 0.05 && tile.y <= d.y1 + 0.05) return d.uid;
     }

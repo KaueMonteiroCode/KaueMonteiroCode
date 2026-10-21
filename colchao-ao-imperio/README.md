@@ -1,0 +1,132 @@
+# Do Colchão ao Império — Finance Tycoon
+
+Jogo isométrico em pixel art em que seu **progresso financeiro real** transforma um quarto
+precário (colchão no chão, parede descascada, PC amarelado) num complexo empresarial de luxo.
+
+- **R$ (dinheiro real)**: você registra contas, receitas, despesas, cartões, dívidas, metas…
+- **Moedas (virtuais)**: ganhas ao economizar, quitar dívidas, manter constância e cumprir missões.
+  Gastas na loja do jogo. **Nunca** tiram um centavo do seu saldo real.
+
+Tudo roda no navegador, offline, sem cadastro, sem servidor e sem conexão bancária.
+
+## Como executar
+
+Requisitos: Node 20+.
+
+```bash
+cd colchao-ao-imperio
+npm install
+npm run dev          # abre em http://localhost:5173
+```
+
+Build de produção (arquivos estáticos em `dist/`, abre de qualquer servidor estático):
+
+```bash
+npm run build
+npm run preview
+```
+
+Testes:
+
+```bash
+npm test             # testes unitários (dinheiro, ledger, anti-fraude de moedas, conteúdo)
+npm run dev &        # depois, com o servidor rodando:
+npm run e2e          # critério de sucesso de ponta a ponta no Chromium (desktop)
+node scripts/e2e.mjs --mobile   # o mesmo fluxo em viewport de celular com toque
+npm run qa           # QA ampla: cartão parcelado, dívida, calendário, decorar, interações
+npm run visual       # gera folhas com as miniaturas de todos os móveis e cada imóvel
+```
+
+(`e2e`/`qa`/`visual` usam `playwright-core`; aponte `CHROMIUM=/caminho/do/chrome` se necessário.)
+
+## Critério de sucesso (testado automaticamente em `scripts/e2e.mjs`)
+
+Abrir o jogo → ver o personagem no quarto horrível → registrar R$ 25 de economia → ganhar
+moedas → entrar na loja → comprar um objeto → posicioná-lo no quarto → fechar o navegador →
+reabrir e encontrar tudo salvo. Passa em desktop e em modo celular.
+
+## Arquitetura
+
+| Camada | Escolha | Por quê |
+|---|---|---|
+| Linguagem / build | TypeScript + Vite | tipagem forte para regras financeiras; build estático |
+| Interface | React 19 | telas financeiras, loja, painéis |
+| Jogo isométrico | **Motor próprio em Canvas 2D** (`src/engine`) | ver abaixo |
+| Persistência | IndexedDB + espelho síncrono em localStorage | sobrevive a fechar a aba abruptamente |
+| Testes | Vitest + Playwright (Chromium) | unidade + ponta a ponta |
+
+**Por que não Phaser/PixiJS?** Todos os sprites são **gerados por código** (não há imagens),
+a partir de primitivas 3D (caixas com faces pintáveis) projetadas em isometria 2:1. Isso exige
+controle fino de projeção, rotação de faces, ordenação por profundidade e iluminação — que em
+Canvas 2D ficam simples e leves (bundle menor, sem WebGL obrigatório). O mundo é desenhado numa
+resolução base e ampliado com *nearest-neighbor*, o que dá o visual pixel art nítido.
+
+```
+src/
+  core/      dinheiro em centavos, datas locais, IndexedDB, contrato de sync futuro
+  finance/   ledger (saldos assinados, patrimônio, faturas, parcelas, calendário, projeção), CSV
+  game/      catálogo (373 móveis), pisos/paredes, imóveis, recompensas, conquistas, missões, títulos, eventos
+  engine/    projeção isométrica, primitivas, personagem, A*, motor da cena, miniaturas
+  state/     tipos do save, store imutável, ações (todas as regras de negócio validadas)
+  ui/        telas React (jogo, loja, inventário, finanças, conquistas, imóveis, ajustes…)
+  audio/     efeitos sonoros e música lo-fi sintetizados com WebAudio
+```
+
+## Regras financeiras (garantidas por código e testes)
+
+- Valores sempre em **centavos inteiros**; parcelas divididas sem perder centavos.
+- Todo saldo é **assinado**: ativos positivos, passivos (cartão, dívida) negativos.
+  Patrimônio = soma de tudo. Logo:
+  - **transferências** entre contas **não** alteram patrimônio e **não** geram moedas;
+  - **empréstimo recebido** (transferência da conta Dívida para a corrente) não é enriquecimento;
+  - **pagar dívida** reduz ativo e passivo juntos.
+- **Saldo inicial** é linha de base e nunca gera moedas.
+- Lançamentos futuros e recorrências ficam **pendentes até você confirmar**; nada é marcado como pago sozinho.
+- Editar/excluir guarda **histórico** (lixeira com restauração + auditoria).
+
+### Como as moedas são calculadas (anti-duplicação)
+
+Moedas e XP **não são acumulados por evento**: são **recalculados do histórico** a cada mudança.
+
+- Economia: curva generosa no começo (2 moedas por R$ até R$ 100, depois decrescente),
+  aplicada ao **pico histórico de ganho de patrimônio**. Gastar depois não retira o que foi
+  conquistado; recuperar até o pico não paga de novo; apagar um lançamento falso retira.
+- Dívidas: só a redução de dívidas **que já existiam** (abaixo do menor valor já atingido).
+  Pegar empréstimo e devolver não rende nada.
+- Ajustes de saldo para cima não rendem.
+- Constância: 5 moedas por dia (do relógio real, não retroativo) com registro.
+- Conquistas e missões: cada uma vale uma vez; missões diárias/semanais por período.
+- Compras/vendas ficam num livro de moedas separado. Itens que vêm com o imóvel não podem ser vendidos.
+
+## O que existe de verdade
+
+- **Jogo**: quarto inicial precário, personagem personalizável (cabelo, rosto, roupa, barba,
+  acessórios — alguns premium) que anda (A*), senta, dorme, digita, toma café, comemora com
+  confete; funcionários NPC nos escritórios; balões de fala; iluminação por lâmpadas/janelas
+  (céu conforme a hora real); câmera com zoom, arrasto, pinça e "ver tudo".
+- **Loja**: 373 móveis e variantes em 21 categorias + 39 pisos/papéis de parede, raridades de
+  sucata a lendário, itens por nível, coleções e itens exclusivos de eventos sazonais.
+- **Decoração**: comprar e posicionar com fantasma verde/vermelho, mover, girar, guardar,
+  vender (50%), itens de mesa sobre superfícies (e que acompanham a mesa), itens de parede,
+  pisos/paredes, temas de iluminação, expansão do ambiente, layouts salvos por imóvel.
+- **12 imóveis** com tamanhos, paredes, pisos, janelas, fixos (colunas, elevadores) e móveis
+  iniciais diferentes; os anteriores continuam acessíveis.
+- **Finanças**: contas, saldo inicial, receitas, despesas, transferências, ajustes, cartões
+  (fechamento/vencimento, faturas, parcelado), dívidas (parcelas, antecipação, avulso, juros),
+  recorrências/assinaturas, calendário com confirmação, metas, reserva de emergência,
+  orçamento por categoria, categorias personalizadas, patrimônio, gráficos, projeção,
+  importação/exportação CSV, backup/restauração JSON, exclusão total dos dados.
+- **Evolução**: níveis/XP, 245 conquistas em 12 ramos (lista + árvore), títulos, coleções,
+  missões de história, diárias, semanais e de eventos, histórico de evolução e objetivos de
+  curto/médio/longo prazo. Ficar dias sem registrar não pune (a sequência tolera 1 dia de folga).
+
+## Limitações conhecidas / pendências
+
+- Sprites são procedurais (formas geométricas pintadas), não arte desenhada à mão. A estética
+  é consistente, mas um artista poderia substituir modelos por spritesheets no futuro.
+- Importação CSV cobre o formato do próprio app e extratos simples (`data;descricao;valor`);
+  extratos OFX e formatos específicos de bancos não são lidos.
+- A fonte "Press Start 2P" vem do Google Fonts; offline cai para uma fonte monoespaçada.
+- Sincronização entre dispositivos **não** está implementada (só o contrato em `src/core/sync.ts`).
+  Use backup/restauração para trocar de navegador.
+- Sem PWA instalável ainda (funciona offline depois de carregado, mas sem service worker).

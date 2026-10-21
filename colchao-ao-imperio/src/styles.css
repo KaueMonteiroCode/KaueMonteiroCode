@@ -227,3 +227,10 @@ table.tbl td.r, table.tbl th.r { text-align: right; }
   .hud-box { padding: 6px 8px; }
   .hud-player canvas { width: 32px; height: 38px; }
 }
+@media (min-width: 721px) {
+  .app.panel-wide .toasts { left: calc((100vw - min(760px, 100vw)) / 2); width: min(380px, max(240px, calc(100vw - 800px))); }
+  .app.panel-open .toasts { left: calc((100vw - min(480px, 100vw)) / 2); }
+}
+@media (max-width: 720px) {
+  .app.panel-wide .toasts, .app.panel-open .toasts { top: 8px; bottom: auto; }
+}

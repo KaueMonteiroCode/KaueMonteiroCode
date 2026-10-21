@@ -28,6 +28,8 @@ export interface AvatarPose {
   dir: number;
   anim: AvatarAnim;
   t: number;
+  /** ângulo (rad) do corpo deitado, alinhado à cama */
+  lie?: number;
 }
 
 const C = 2; // tamanho do "pixel" do personagem
@@ -36,8 +38,9 @@ const C = 2; // tamanho do "pixel" do personagem
  * Desenha o personagem com os pés em (0,0). Altura total ~54px.
  */
 export function drawAvatar(ctx: CanvasRenderingContext2D, cfg: AvatarConfig, pose: AvatarPose) {
-  const front = pose.dir === 0 || pose.dir === 1;
-  const mirror = pose.dir === 1 || pose.dir === 3; // espelha para direita
+  const lying = pose.anim === 'sleep';
+  const front = lying || pose.dir === 0 || pose.dir === 1;
+  const mirror = !lying && (pose.dir === 1 || pose.dir === 3); // espelha para direita
   ctx.save();
   if (mirror) ctx.scale(-1, 1);
 
@@ -58,9 +61,10 @@ export function drawAvatar(ctx: CanvasRenderingContext2D, cfg: AvatarConfig, pos
   if (anim === 'celebrate') jump = -Math.abs(Math.sin(t * 7)) * 8;
 
   if (anim === 'sleep') {
-    ctx.translate(-2, -6);
-    ctx.rotate(-Math.PI / 2 * 0.92);
-    ctx.translate(-26, 0);
+    // deita o corpo ao longo da cama, com o centro do corpo no ponto de ancoragem
+    ctx.translate(0, -3);
+    ctx.rotate(pose.lie ?? -Math.PI / 2);
+    ctx.translate(0, 24);
   }
 
   const sitting = anim === 'sit' || anim === 'type';
