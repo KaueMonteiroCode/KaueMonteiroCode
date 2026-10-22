@@ -6,7 +6,8 @@ import { computeProgress } from '../game/progress';
 import { currentMissions } from '../game/missions';
 import { activeEvents } from '../game/meta';
 import { formatBRL } from '../core/money';
-import { totals } from '../finance/ledger';
+import { calendarEvents, totals } from '../finance/ledger';
+import { addDays, todayISO } from '../core/dates';
 import * as A from '../state/actions';
 import type { Placement, SaveData } from '../state/types';
 import { getState } from '../state/store';
@@ -89,6 +90,25 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
     };
   }, [setMode]);
 
+  /* ---------- atalhos de teclado (PC) ---------- */
+  const keysRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  keysRef.current = (e: KeyboardEvent) => {
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (document.querySelector('.modal') || !save.profile.onboarded) return;
+    const k = e.key.toLowerCase();
+    if (k === 'escape') { if (panel) setPanel(null); else if (mode !== 'play') setMode('play'); setMore(false); return; }
+    const map: Record<string, PanelId> = { f: 'finance', l: 'shop', i: 'inventory', m: 'missions', c: 'achievements', p: 'avatar' };
+    if (k === 'e') { e.preventDefault(); setSaving(true); return; }
+    if (k === 'd') { setPanel(null); setMode(mode === 'edit' ? 'play' : 'edit'); return; }
+    if (map[k]) { e.preventDefault(); openPanel(map[k]); }
+  };
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => keysRef.current(e);
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
+
   /* ---------- câmera abre espaço para os painéis ---------- */
   useEffect(() => {
     const e = engineRef.current; if (!e) return;
@@ -107,6 +127,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   const lastCoins = useRef<number | null>(null);
   const notified = useRef<Set<string>>(new Set());
   const notifiedLevel = useRef(0);
+  const wishReach = useRef<Set<string> | null>(null);
   useEffect(() => {
     const p = progress;
     if (lastCoins.current != null && p.coinsEarned > lastCoins.current) {
@@ -115,6 +136,10 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
       sfx.coin();
     }
     lastCoins.current = p.coinsEarned;
+    // desejos que acabaram de ficar ao alcance
+    const reach = (save.game.wishlist ?? []).filter((id) => { const d = getItem(id); return d && d.price <= p.coins; });
+    if (wishReach.current) for (const id of reach) if (!wishReach.current.has(id)) toast(`Dá para comprar seu desejo: ${getItem(id)!.name}!`, { kind: 'ok', icon: 'star', sub: 'Abra a loja, aba ★ Desejos.' });
+    wishReach.current = new Set(reach);
     if (!save.profile.onboarded) return;
     const fresh = p.achievements.filter((a) => a.unlocked && !save.game.seenAchievements[a.def.id] && !notified.current.has(a.def.id));
     const levelUp = p.level > Math.max(save.game.seenLevel, notifiedLevel.current);
@@ -132,6 +157,10 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
     setTimeout(() => A.markSeen(fresh.map((a) => a.def.id), p.level), 50);
   }, [progress, save]);
 
+  const overdue = useMemo(() => {
+    const t = todayISO();
+    return calendarEvents(save.finance, addDays(t, -90), t).filter((e) => !e.done && (e.amount < 0 || e.kind === 'pending')).length;
+  }, [save]);
   const missionsReady = useMemo(() => currentMissions(save).filter((m) => m.done && !m.claimed).length, [save]);
   const events = activeEvents();
   const sel = selected != null ? save.game.inventory.find((i) => i.uid === selected) : null;
@@ -213,7 +242,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
       {/* dock */}
       <nav className="dock" aria-label="Menu do jogo">
         <button className="save" onClick={() => { sfx.open(); setMore(false); setSaving(true); }}><Icon name="plus" size={18} />Economizei</button>
-        <button className={panel === 'finance' ? 'on' : ''} onClick={() => openPanel('finance')}><Icon name="money" size={20} />Finanças</button>
+        <button className={panel === 'finance' ? 'on' : ''} onClick={() => openPanel('finance')}><Icon name="money" size={20} />Finanças{overdue > 0 && <span className="badge" title={`${overdue} conta(s) vencida(s) sem confirmação`}>{overdue}</span>}</button>
         <button className={panel === 'shop' ? 'on' : ''} onClick={() => openPanel('shop')}><Icon name="shop" size={20} />Loja</button>
         <button className={mode === 'edit' ? 'on' : ''} onClick={() => { setMore(false); setPanel(null); setMode(mode === 'edit' ? 'play' : 'edit'); }}><Icon name="brush" size={20} />Decorar</button>
         <button className={`sec ${panel === 'inventory' ? 'on' : ''}`} onClick={() => openPanel('inventory')}><Icon name="box" size={20} />Inventário</button>

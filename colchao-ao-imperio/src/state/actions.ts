@@ -358,6 +358,14 @@ export function buyItem(defId: string, opts: { place?: boolean } = {}): number {
   return newUid;
 }
 
+export function toggleWish(defId: string) {
+  update((d) => {
+    const w = d.game.wishlist ?? (d.game.wishlist = []);
+    const i = w.indexOf(defId);
+    if (i >= 0) w.splice(i, 1); else { if (w.length >= 30) fail('A lista de desejos aceita até 30 itens.'); w.push(defId); }
+  });
+}
+
 export function sellItem(itemUid: number) {
   update((d) => {
     const it = d.game.inventory.find((i) => i.uid === itemUid) ?? fail('Item não encontrado');

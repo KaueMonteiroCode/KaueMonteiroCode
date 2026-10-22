@@ -6,6 +6,8 @@ import * as A from '../state/actions';
 import type { SaveData } from '../state/types';
 import { sfx } from '../audio/sfx';
 import { act, Coins, Drawer, Icon, Progress } from './common';
+import { WishProgress } from './Shop';
+import { computeProgress } from '../game/progress';
 
 const PERIOD: Record<string, string> = { historia: 'História', evento: 'Evento especial', diaria: 'Diárias', semanal: 'Semanais' };
 
@@ -16,6 +18,7 @@ export function MissionsPanel({ save, onClose }: { save: SaveData; onClose: () =
   return (
     <Drawer title="Missões" icon="target" onClose={onClose}>
       <div className="hint" style={{ marginBottom: 10 }}>Missões premiam hábitos saudáveis, nunca gastar. Ficou uns dias sem registrar? Sem problema: as diárias simplesmente renovam, nada é perdido.</div>
+      <WishProgress save={save} coins={computeProgress(save).coins} />
       {events.map((e) => <div key={e.id} className="card" style={{ boxShadow: `0 0 0 2px ${e.color}` }}><b style={{ color: e.color }}>{e.name}</b><div className="small muted">{e.desc} Itens exclusivos na loja enquanto durar.</div></div>)}
       {groups.map((g) => {
         const ms = list.filter((m) => m.period === g);

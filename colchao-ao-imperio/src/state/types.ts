@@ -230,6 +230,8 @@ export interface GameState {
   seenAchievements: Record<string, number>;
   seenLevel: number;
   visits: Record<string, number>; // telas visitadas (missões de hábito)
+  /** Lista de desejos: ids de móveis que o jogador quer comprar */
+  wishlist: string[];
 }
 
 export interface Profile {

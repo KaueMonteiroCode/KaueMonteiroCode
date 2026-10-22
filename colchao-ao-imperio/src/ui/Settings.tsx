@@ -31,6 +31,12 @@ export function SettingsPanel({ save, onClose, onExit }: { save: SaveData; onClo
         ))}
       </div>
       <div className="card">
+        <b>Atalhos de teclado (PC)</b>
+        <div className="small muted" style={{ lineHeight: 1.8, marginTop: 4 }}>
+          <kbd>E</kbd> Economizei · <kbd>F</kbd> Finanças · <kbd>L</kbd> Loja · <kbd>D</kbd> Decorar · <kbd>I</kbd> Inventário · <kbd>M</kbd> Missões · <kbd>C</kbd> Conquistas · <kbd>P</kbd> Personagem · <kbd>R</kbd> girar ao posicionar · <kbd>+</kbd>/<kbd>-</kbd> zoom · <kbd>Esc</kbd> fechar
+        </div>
+      </div>
+      <div className="card">
         <b>Backup e restauração</b>
         <p className="small muted" style={{ lineHeight: 1.6 }}>Seus dados ficam só neste navegador (IndexedDB). Faça backups para não perder nada se limpar o navegador ou trocar de computador.</p>
         <div className="row wrap">

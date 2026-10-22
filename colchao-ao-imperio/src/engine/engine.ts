@@ -104,6 +104,7 @@ export class GameEngine {
   destroyed = false;
   /** espaço ocupado por painéis à direita/embaixo (px de canvas) */
   inset = { right: 0, bottom: 0 };
+  lowPower = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -431,8 +432,25 @@ export class GameEngine {
     a.dir = [0, 3, 2, 1][pi.p.rot & 3];
   }
 
+  private lastInput = performance.now();
+  private nextIdle = 0;
+  /** Vida própria: com o jogador parado por um tempo, o personagem faz algo sozinho. */
+  private idleLife(now: number) {
+    this.nextIdle = now + 20000 + Math.random() * 15000;
+    const a = this.player;
+    if (a.path.length || a.anim === 'celebrate') return;
+    const options = this.room!.placed.filter((p) => p.def.use && p.def.use !== 'computer' || p.def.sit != null);
+    if (options.length && Math.random() < 0.7) {
+      const pick = options[Math.floor(Math.random() * options.length)];
+      this.interact(pick.item.uid, true);
+      return;
+    }
+    const f = nearestFree(this.grid, Math.random() * this.room!.W, Math.random() * this.room!.D);
+    if (f) { this.walkTo(f[0], f[1]); if (Math.random() < 0.4) this.say(a, ['Hmm, o que mais dá para economizar?', 'Um dia esse quarto vira império.', 'Bora registrar os gastos de hoje?', 'Cada real conta!'][Math.floor(Math.random() * 4)]); }
+  }
+
   /** Clique num item no modo jogo */
-  interact(uid: number) {
+  interact(uid: number, auto = false) {
     const pi = this.room?.placed.find((p) => p.item.uid === uid);
     if (!pi) return;
     const def = pi.def;
@@ -453,7 +471,7 @@ export class GameEngine {
       const done = () => {
         this.faceTowards(a, pi.p.x + pi.w / 2, pi.p.y + pi.d / 2);
         this.say(a, this.pickSaying(use, def));
-        this.cb.onUse?.(def, uid);
+        if (!auto) this.cb.onUse?.(def, uid);
       };
       if (seat) {
         this.approach(seat.p.x, seat.p.y, seat.w, seat.d, () => {
@@ -472,7 +490,7 @@ export class GameEngine {
       a.anim = use === 'coffee' || use === 'water' ? 'drink' : 'use';
       a.idleUntil = performance.now() + 2500;
       this.say(a, use ? this.pickSaying(use, def) : def.sad ? 'Um dia eu troco isso.' : `Que ${def.name.toLowerCase()} bonito(a)!`);
-      this.cb.onUse?.(def, uid);
+      if (!auto) this.cb.onUse?.(def, uid);
     });
   }
 
@@ -535,6 +553,8 @@ export class GameEngine {
   frame = (ts: number) => {
     if (this.destroyed) return;
     this.raf = requestAnimationFrame(this.frame);
+    // celulares: 30 quadros por segundo (economiza bateria); PC: até 60
+    if (this.lowPower && this.last && ts - this.last < 30) return;
     const dt = Math.min(0.05, (ts - (this.last || ts)) / 1000);
     this.last = ts;
     this.t += dt;
@@ -548,6 +568,7 @@ export class GameEngine {
     }
     if (!this.room || !this.save) return;
     const now = performance.now();
+    if (this.mode === 'play' && now - this.lastInput > 25000 && now > this.nextIdle) this.idleLife(now);
     this.updateActor(this.player, dt, now);
     for (const n of this.npcs) this.updateActor(n, dt, now);
     for (const p of this.particles) {
@@ -912,6 +933,7 @@ export class GameEngine {
     const c = this.canvas;
     const pos = (e: PointerEvent | WheelEvent) => { const r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * this.dpr, y: (e.clientY - r.top) * this.dpr }; };
     const down = (e: PointerEvent) => {
+      this.lastInput = performance.now();
       c.setPointerCapture(e.pointerId);
       const p = pos(e);
       this.pointers.set(e.pointerId, p);

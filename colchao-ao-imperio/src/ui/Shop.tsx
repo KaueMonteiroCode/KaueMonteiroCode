@@ -6,13 +6,14 @@ import type { Progress } from '../game/progress';
 import * as A from '../state/actions';
 import type { SaveData } from '../state/types';
 import { sfx } from '../audio/sfx';
-import { act, Coins, Drawer, ItemThumb, Modal, StyleThumb, toast } from './common';
+import { act, Coins, Drawer, ItemThumb, Modal, Progress as Bar, StyleThumb, toast } from './common';
 
 type Sort = 'preco' | 'preco-desc' | 'raridade' | 'nome';
 const RANK = ['sucata', 'comum', 'incomum', 'raro', 'epico', 'lendario'];
 
 export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData; progress: Progress; onClose: () => void; onPlace: (uid: number) => void }) {
-  const [cat, setCat] = useState<CatId | 'pisos' | 'paredes-estilo' | 'evento' | 'todos'>('todos');
+  const [cat, setCat] = useState<CatId | 'pisos' | 'paredes-estilo' | 'evento' | 'todos' | 'desejos'>('todos');
+  const wish = save.game.wishlist ?? [];
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('preco');
   const [onlyAfford, setOnlyAfford] = useState(false);
@@ -27,6 +28,7 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
   const list = useMemo(() => {
     let l = SHOP_ITEMS.filter((i) => !i.event || events.some((e) => e.id === i.event));
     if (cat === 'evento') l = l.filter((i) => i.event);
+    else if (cat === 'desejos') l = l.filter((i) => wish.includes(i.id));
     else if (cat !== 'todos') l = l.filter((i) => i.cat === cat);
     if (q.trim()) l = l.filter((i) => i.name.toLowerCase().includes(q.toLowerCase()));
     if (onlyAfford) l = l.filter((i) => i.price <= progress.coins && (!i.minLevel || i.minLevel <= progress.level));
@@ -36,7 +38,7 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
     if (sort === 'raridade') s.sort((a, b) => RANK.indexOf(b.rarity) - RANK.indexOf(a.rarity));
     if (sort === 'nome') s.sort((a, b) => a.name.localeCompare(b.name));
     return s;
-  }, [cat, q, sort, onlyAfford, progress, events]);
+  }, [cat, q, sort, onlyAfford, progress, events, wish]);
 
   const buy = (def: ItemDef, place: boolean) => {
     const uid = act(() => A.buyItem(def.id));
@@ -63,11 +65,13 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
       </div>
       <div className="catbar">
         <button className={`btn sm ${cat === 'todos' ? 'gold' : ''}`} onClick={() => setCat('todos')}>Tudo</button>
+        <button className={`btn sm ${cat === 'desejos' ? 'gold' : ''}`} onClick={() => setCat('desejos')}>★ Desejos ({wish.length})</button>
         {events.length > 0 && <button className={`btn sm ${cat === 'evento' ? 'gold' : ''}`} onClick={() => setCat('evento')} style={{ color: cat === 'evento' ? undefined : events[0].color }}>★ Evento</button>}
         {CATEGORIES.map((c) => <button key={c.id} className={`btn sm ${cat === c.id ? 'gold' : ''}`} onClick={() => setCat(c.id)}>{c.name}</button>)}
         <button className={`btn sm ${cat === 'pisos' ? 'gold' : ''}`} onClick={() => setCat('pisos')}>Pisos</button>
         <button className={`btn sm ${cat === 'paredes-estilo' ? 'gold' : ''}`} onClick={() => setCat('paredes-estilo')}>Papéis de parede</button>
       </div>
+      {!styles && <WishProgress save={save} coins={progress.coins} onOpen={(d) => setDetail(d)} />}
       {!styles && <label className="row small" style={{ margin: '0 0 8px' }}><input type="checkbox" checked={onlyAfford} onChange={(e) => setOnlyAfford(e.target.checked)} style={{ width: 'auto' }} /> Só o que posso comprar agora</label>}
 
       {styles ? (
@@ -99,6 +103,7 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
               <button key={def.id} className="item-card" onClick={() => { sfx.click(); setDetail(def); }}>
                 <ItemThumb defId={def.id} />
                 {n > 0 && <span className="qty">x{n}</span>}
+                {wish.includes(def.id) && <span className="qty" style={{ left: 8, right: 'auto', color: 'var(--gold)' }} aria-label="Na lista de desejos">★</span>}
                 <div className="nm">{def.name}</div>
                 <div className="row between">
                   <span className="pr" style={{ color: def.price > progress.coins ? 'var(--ink-3)' : undefined }}>{def.price === 0 ? 'Grátis' : <Coins n={def.price} />}</span>
@@ -133,6 +138,7 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
             </div>
           </div>
           <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12, flexWrap: 'wrap' }}>
+            <button className="btn ghost" onClick={() => act(() => A.toggleWish(detail.id))}>{wish.includes(detail.id) ? '★ Tirar dos desejos' : '☆ Quero este'}</button>
             <button className="btn" disabled={detail.price > progress.coins || (detail.minLevel ?? 0) > progress.level} onClick={() => buy(detail, false)}>Comprar e guardar</button>
             <button className="btn gold" disabled={detail.price > progress.coins || (detail.minLevel ?? 0) > progress.level} onClick={() => buy(detail, true)}>Comprar e posicionar</button>
           </div>
@@ -140,5 +146,26 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
         </Modal>
       )}
     </Drawer>
+  );
+}
+
+/** Próximo desejo: o item mais barato da lista que ainda não dá para comprar (ou um que já dá). */
+export function WishProgress({ save, coins, onOpen }: { save: SaveData; coins: number; onOpen?: (d: ItemDef) => void }) {
+  const items = (save.game.wishlist ?? []).map((id) => SHOP_ITEMS.find((i) => i.id === id)).filter((x): x is ItemDef => !!x).sort((a, b) => a.price - b.price);
+  if (!items.length) return null;
+  const ready = items.filter((i) => i.price <= coins);
+  const next = items.find((i) => i.price > coins);
+  return (
+    <div className="card row" style={{ marginBottom: 10, gap: 10, cursor: onOpen ? 'pointer' : undefined }} onClick={() => onOpen?.((next ?? ready[0]))}>
+      <div style={{ width: 56, flexShrink: 0 }}><ItemThumb defId={(next ?? ready[0]).id} size={56} /></div>
+      <div className="grow" style={{ minWidth: 0 }}>
+        {ready.length > 0 && <div className="small pos">Você já pode comprar {ready.length === 1 ? ready[0].name : `${ready.length} desejos`}!</div>}
+        {next && <>
+          <div className="small ellipsis">Próximo desejo: <b>{next.name}</b></div>
+          <Bar value={coins} max={next.price} kind="gold" />
+          <div className="tiny muted">Faltam <Coins n={next.price - coins} /> moedas</div>
+        </>}
+      </div>
+    </div>
   );
 }

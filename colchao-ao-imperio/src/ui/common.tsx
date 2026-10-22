@@ -53,7 +53,7 @@ export function Coins({ n, className = '' }: { n: number; className?: string }) 
 
 /* ---------------- toasts ---------------- */
 
-export interface ToastMsg { id: number; text: ReactNode; sub?: ReactNode; kind?: 'ok' | 'err' | 'ach' | 'info'; icon?: string; ms?: number }
+export interface ToastMsg { id: number; text: ReactNode; sub?: ReactNode; kind?: 'ok' | 'err' | 'ach' | 'info'; icon?: string; ms?: number; action?: { label: string; run: () => void } }
 type ToastL = (t: ToastMsg[]) => void;
 let toasts: ToastMsg[] = [];
 let tid = 1;
@@ -78,6 +78,7 @@ export function Toasts() {
             <div style={{ fontWeight: 700, fontSize: t.kind === 'ach' ? 13 : 13 }}>{t.text}</div>
             {t.sub && <div className="small muted">{t.sub}</div>}
           </div>
+          {t.action && <button className="btn sm gold" onClick={() => { t.action!.run(); toasts = toasts.filter((x) => x.id !== t.id); tl.forEach((l) => l(toasts)); }}>{t.action.label}</button>}
         </div>
       ))}
     </div>
@@ -175,8 +176,11 @@ export function ItemThumb({ defId, size = 96, animate = false, className = 'thum
     if (!c || !def) return;
     let raf = 0; const t0 = performance.now();
     const draw = () => { drawItemThumb(c, def, (performance.now() - t0) / 1000 + 0.5); if (animate) raf = requestAnimationFrame(draw); };
-    draw();
-    return () => cancelAnimationFrame(raf);
+    // desenha só quando a miniatura entra na tela (lojas com centenas de itens)
+    if (animate || typeof IntersectionObserver === 'undefined') { draw(); return () => cancelAnimationFrame(raf); }
+    const io = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) { draw(); io.disconnect(); } }, { rootMargin: '200px' });
+    io.observe(c);
+    return () => { io.disconnect(); cancelAnimationFrame(raf); };
   }, [defId, animate]);
   return <canvas ref={ref} width={size} height={size} className={className} />;
 }

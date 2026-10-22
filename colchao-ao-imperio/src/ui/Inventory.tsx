@@ -4,19 +4,21 @@ import { getProperty } from '../game/properties';
 import * as A from '../state/actions';
 import type { SaveData } from '../state/types';
 import { sfx } from '../audio/sfx';
-import { act, Coins, Confirm, Drawer, ItemThumb } from './common';
+import { act, Coins, Confirm, Drawer, ItemThumb, toast } from './common';
+import { findFreeSpot, roomInfo } from '../game/room';
 
 export function InventoryPanel({ save, onClose, onPlace }: { save: SaveData; onClose: () => void; onPlace: (uid: number) => void }) {
   const [filter, setFilter] = useState<'guardados' | 'aqui' | 'todos'>('guardados');
   const [sell, setSell] = useState<number | null>(null);
   const [storeAll, setStoreAll] = useState(false);
+  const [q, setQ] = useState('');
   const pid = save.game.currentProperty;
   const groups = useMemo(() => {
-    const items = save.game.inventory.filter((i) => filter === 'todos' || (filter === 'guardados' ? !i.placed : i.placed?.propertyId === pid));
+    const items = save.game.inventory.filter((i) => filter === 'todos' || (filter === 'guardados' ? !i.placed : i.placed?.propertyId === pid)).filter((i) => !q.trim() || (getItem(i.defId)?.name ?? '').toLowerCase().includes(q.trim().toLowerCase()));
     const m = new Map<string, typeof items>();
     for (const i of items) { const k = i.defId + (i.placed ? `@${i.placed.propertyId}` : ''); m.set(k, [...(m.get(k) ?? []), i]); }
     return [...m.values()].sort((a, b) => (getItem(a[0].defId)?.cat ?? '').localeCompare(getItem(b[0].defId)?.cat ?? ''));
-  }, [save, filter, pid]);
+  }, [save, filter, pid, q]);
   const stored = save.game.inventory.filter((i) => !i.placed).length;
 
   return (
@@ -27,6 +29,7 @@ export function InventoryPanel({ save, onClose, onPlace }: { save: SaveData; onC
         </div>
         <button className="btn sm" onClick={() => setStoreAll(true)}>Guardar tudo deste imóvel</button>
       </div>
+      <input placeholder="Buscar no inventário…" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 10 }} aria-label="Buscar no inventário" />
       <div className="items-grid">
         {groups.map((g) => {
           const it = g[0]; const def = getItem(it.defId); if (!def) return null;
@@ -39,6 +42,11 @@ export function InventoryPanel({ save, onClose, onPlace }: { save: SaveData; onC
               <div className="row" style={{ gap: 4 }}>
                 {!it.locked && <button className="btn sm primary grow" onClick={() => { sfx.click(); onPlace(it.uid); }}>{it.placed ? 'Mover' : 'Colocar'}</button>}
                 {it.placed && !it.locked && <button className="btn sm" title="Guardar" onClick={() => act(() => A.storeItem(it.uid))}>Guardar</button>}
+                {!it.placed && <button className="btn sm" title="Colocar sozinho num lugar livre" onClick={() => {
+                  const spot = findFreeSpot(roomInfo(save), def);
+                  if (!spot) { toast('Não há espaço livre para este item. Expanda o ambiente ou guarde algo.', { kind: 'err' }); return; }
+                  const ok = act(() => { A.placeItem(it.uid, spot); return true; }); if (ok) { sfx.place(); toast(`${def.name} colocado!`, { kind: 'ok', icon: 'check' }); }
+                }}>Auto</button>}
                 {!it.locked && !it.gift && def.price > 0 && <button className="btn sm danger" title="Vender" onClick={() => setSell(it.uid)}>$</button>}
               </div>
             </div>

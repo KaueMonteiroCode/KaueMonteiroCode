@@ -64,6 +64,7 @@ export function newSave(): SaveData {
       seenAchievements: {},
       seenLevel: 1,
       visits: {},
+      wishlist: [],
     },
   };
 }
@@ -88,6 +89,7 @@ export function normalizeSave(raw: unknown): SaveData {
   for (const t of out.finance.transactions) {
     if (!Number.isSafeInteger(t.amount)) throw new Error(`Lançamento com valor inválido: ${t.id}`);
   }
+  if (!Array.isArray(out.game.wishlist)) out.game.wishlist = [];
   for (const pid of out.game.ownedProperties) if (!out.game.rooms[pid]) out.game.rooms[pid] = roomDefaults(pid);
   return out;
 }

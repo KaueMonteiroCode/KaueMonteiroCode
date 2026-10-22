@@ -262,3 +262,4 @@ table.tbl td.r, table.tbl th.r { text-align: right; }
   .zoombar { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
   .drawer, .drawer.wide { height: calc(100% - 64px - env(safe-area-inset-top, 0px)); }
 }
+kbd { font-family: var(--pix); font-size: 9px; background: var(--panel-3); border-radius: 3px; padding: 2px 5px; box-shadow: 0 2px 0 #0e0b14; color: var(--ink); }

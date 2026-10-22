@@ -117,8 +117,32 @@ function GoalForm({ save, goal, onClose }: { save: SaveData; goal?: Goal; onClos
   );
 }
 
+function FundGoal({ save, goal, onClose }: { save: SaveData; goal: Goal; onClose: () => void }) {
+  const from = save.finance.accounts.filter((a) => !a.archived && !isLiability(a.type) && a.id !== goal.accountId);
+  const [acc, setAcc] = useState(from[0]?.id ?? '');
+  const missing = Math.max(0, goal.target - goalProgress(save.finance, goal));
+  const [amount, setAmount] = useState<Cents | null>(null);
+  return (
+    <Modal title={`Guardar em: ${goal.name}`} onClose={onClose}>
+      <div className="small muted">Faltam {formatBRL(missing)}. Isto registra uma transferência da conta escolhida para a conta da meta (seu patrimônio não muda, mas a meta avança e conta para a missão de guardar).</div>
+      <label>Valor</label><MoneyInput value={amount} onChange={setAmount} autoFocus />
+      <div className="row wrap" style={{ marginTop: 6 }}>
+        {[1000, 5000, 10000, missing].filter((v, i, a) => v > 0 && a.indexOf(v) === i).slice(0, 4).map((v) => <button key={v} type="button" className="btn sm" onClick={() => setAmount(v)}>{v === missing ? `Tudo (${formatBRL(v)})` : formatBRL(v)}</button>)}
+      </div>
+      <label>Sai de</label>
+      <select value={acc} onChange={(e) => setAcc(e.target.value)}>{from.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+      {!from.length && <div className="small neg" style={{ marginTop: 6 }}>Cadastre outra conta (ex.: conta corrente) para transferir.</div>}
+      <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+        <button className="btn ghost" onClick={onClose}>Cancelar</button>
+        <button className="btn primary" disabled={!amount || !acc} onClick={() => { const ok = act(() => { A.addTransaction({ kind: 'transfer', amount: amount!, accountId: acc, toAccountId: goal.accountId!, date: todayISO(), description: `Guardado para ${goal.name}` }); return true; }, 'Guardado na meta!'); if (ok) onClose(); }}>Guardar</button>
+      </div>
+    </Modal>
+  );
+}
+
 function GoalsView({ save }: { save: SaveData }) {
   const [form, setForm] = useState<{ goal?: Goal } | null>(null);
+  const [fund, setFund] = useState<Goal | null>(null);
   const [del, setDel] = useState<Goal | null>(null);
   return (
     <>
@@ -134,13 +158,17 @@ function GoalsView({ save }: { save: SaveData }) {
               <div style={{ marginTop: 6 }}><Progress value={cur} max={g.target} kind="gold" /></div>
               <div className="row between tiny muted" style={{ marginTop: 3 }}><span>{formatBRL(cur)} de {formatBRL(g.target)} ({Math.min(100, Math.round((cur / g.target) * 100))}%)</span>{g.deadline && <span>até {formatDateBR(g.deadline)}</span>}</div>
               {!done && months > 0 && <div className="tiny muted">Para chegar no prazo: {formatBRL(Math.ceil((g.target - cur) / months))} por mês.</div>}
-              <div className="row" style={{ marginTop: 6 }}><button className="btn sm" onClick={() => setForm({ goal: g })}>Editar</button><button className="btn sm danger" onClick={() => setDel(g)}>Excluir</button></div>
+              <div className="row" style={{ marginTop: 6 }}>
+                {g.accountId && !done && <button className="btn sm primary" onClick={() => setFund(g)}>Guardar nesta meta</button>}
+                <button className="btn sm" onClick={() => setForm({ goal: g })}>Editar</button><button className="btn sm danger" onClick={() => setDel(g)}>Excluir</button>
+              </div>
             </div>
           );
         })}
         {!save.finance.goals.length && <div className="small muted">Crie uma meta. Ligue-a a uma conta (ex.: Reserva) para o progresso andar sozinho.</div>}
       </div>
       {form && <GoalForm save={save} goal={form.goal} onClose={() => setForm(null)} />}
+      {fund && <FundGoal save={save} goal={fund} onClose={() => setFund(null)} />}
       {del && <Confirm title="Excluir meta?" text="Os lançamentos não são afetados." yes="Excluir" danger onClose={() => setDel(null)} onYes={() => act(() => A.deleteGoal(del.id), 'Meta excluída')} />}
     </>
   );

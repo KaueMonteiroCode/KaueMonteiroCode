@@ -82,6 +82,7 @@ function Summary({ save, go }: { save: SaveData; go: (t: string) => void }) {
         <div className="hr" />
         <div className="row between"><span>Resultado do mês</span><b className={ms.result >= 0 ? 'pos' : 'neg'}>{formatBRL(ms.result, { sign: true })}</b></div>
       </div>
+      <MonthInsights save={save} mk={mk} />
       {overdue.length > 0 && (
         <div className="card" style={{ boxShadow: '0 0 0 2px var(--red)' }}>
           <b className="neg">Vencidos e não confirmados ({overdue.length})</b>
@@ -109,6 +110,38 @@ function Summary({ save, go }: { save: SaveData; go: (t: string) => void }) {
       </div>
       {form && <TxForm save={save} preset={form} onClose={() => setForm(null)} />}
     </>
+  );
+}
+
+/** Raio-X do mês: taxa de poupança, ritmo de gastos e o que mudou em relação ao mês anterior. */
+function MonthInsights({ save, mk }: { save: SaveData; mk: string }) {
+  const fin = save.finance;
+  const cur = monthSummary(fin, mk);
+  const prev = monthSummary(fin, addMonthKey(mk, -1));
+  if (!cur.count && !prev.count) return null;
+  const inflow = cur.income + cur.saved;
+  const rate = inflow > 0 ? Math.round((cur.result / inflow) * 100) : null;
+  const day = Number(todayISO().slice(8, 10));
+  const dim = new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)), 0).getDate();
+  const pace = day > 0 ? Math.round((cur.expense / day) * dim) : cur.expense;
+  const catName = (id: string) => fin.categories.find((c) => c.id === id)?.name ?? 'Sem categoria';
+  const ids = new Set([...cur.byCategory.keys(), ...prev.byCategory.keys()]);
+  const changes = [...ids].map((id) => ({ id, d: (cur.byCategory.get(id) ?? 0) - (prev.byCategory.get(id) ?? 0) })).filter((c) => c.d !== 0).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 3);
+  return (
+    <div className="card">
+      <b>Raio-X do mês</b>
+      <div className="grid3" style={{ marginTop: 8 }}>
+        <div><div className="tiny muted">Taxa de poupança</div><div className={`amount ${rate != null && rate >= 0 ? 'pos' : 'neg'}`}>{rate == null ? '—' : `${rate}%`}</div><div className="tiny muted">do que entrou ficou</div></div>
+        <div><div className="tiny muted">Ritmo de gastos</div><div className="amount">{formatBRL(pace)}</div><div className="tiny muted">se seguir assim até dia {dim}</div></div>
+        <div><div className="tiny muted">Despesas x mês passado</div><div className={`amount ${cur.expense <= prev.expense ? 'pos' : 'neg'}`}>{formatBRL(cur.expense - prev.expense, { sign: true })}</div><div className="tiny muted">{prev.expense ? `mês passado: ${formatBRL(prev.expense)}` : 'sem dados do mês passado'}</div></div>
+      </div>
+      {changes.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div className="tiny muted">Maiores mudanças por categoria</div>
+          {changes.map((c) => <div key={c.id} className="row small between" style={{ marginTop: 3 }}><span>{catName(c.id)}</span><span className={c.d > 0 ? 'neg' : 'pos'}>{c.d > 0 ? '▲' : '▼'} {formatBRL(Math.abs(c.d))}</span></div>)}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -179,6 +212,9 @@ function TransactionsView({ save }: { save: SaveData }) {
                 <div className="row" style={{ gap: 2 }}>
                   {t.status === 'pending' && t.date <= todayISO() && <button className="btn sm primary" title="Confirmar" onClick={() => act(() => A.confirmPending(t.id), 'Confirmado')}>✓</button>}
                   <button className="btn sm" title="Corrigir" onClick={() => setEdit(t)}>✎</button>
+                  {(t.kind === 'income' || t.kind === 'expense' || t.kind === 'transfer') && !t.debtInstallment && !t.recurringId && (
+                    <button className="btn sm" title="Repetir hoje" aria-label="Repetir hoje" onClick={() => setForm({ kind: t.kind, amount: t.amount, accountId: t.accountId, toAccountId: t.toAccountId, categoryId: t.categoryId, description: t.description, saving: t.saving, date: todayISO() })}>⧉</button>
+                  )}
                   <button className="btn sm" title="Histórico" onClick={() => setHist(t)}>⟲</button>
                   <button className="btn sm danger" title="Excluir" onClick={() => setDel(t)}>✕</button>
                 </div>
@@ -189,7 +225,7 @@ function TransactionsView({ save }: { save: SaveData }) {
         {!list.length && <div className="small muted">Nenhum lançamento aqui.</div>}
       </div>
       {(form || edit) && <TxForm save={save} tx={edit ?? undefined} preset={form ?? undefined} onClose={() => { setForm(null); setEdit(null); }} />}
-      {del && <Confirm title="Excluir lançamento?" text={<>O lançamento vai para a lixeira (pode ser restaurado) e o histórico fica registrado. Se ele tinha gerado moedas, o valor será <b>recalculado</b>.</>} yes="Excluir" danger onClose={() => setDel(null)} onYes={() => act(() => A.deleteTransaction(del.id), 'Excluído')} />}
+      {del && <Confirm title="Excluir lançamento?" text={<>O lançamento vai para a lixeira (pode ser restaurado) e o histórico fica registrado. Se ele tinha gerado moedas, o valor será <b>recalculado</b>.</>} yes="Excluir" danger onClose={() => setDel(null)} onYes={() => { const id = del.id; const ok = act(() => { A.deleteTransaction(id); return true; }); if (ok) toast('Lançamento excluído', { kind: 'ok', icon: 'trash', ms: 6000, action: { label: 'Desfazer', run: () => act(() => A.restoreTransaction(id), 'Exclusão desfeita') } }); }} />}
       {hist && (
         <Modal title="Histórico de alterações" onClose={() => setHist(null)}>
           <div className="small">Criado em {new Date(hist.createdAt).toLocaleString('pt-BR')}</div>

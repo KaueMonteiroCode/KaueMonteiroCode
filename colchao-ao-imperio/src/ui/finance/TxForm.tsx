@@ -16,7 +16,7 @@ export function TxForm({ save, tx, preset, onClose }: { save: SaveData; tx?: Tra
   const [categoryId, setCat] = useState(tx?.categoryId ?? preset?.categoryId ?? '');
   const [description, setDesc] = useState(tx?.description ?? preset?.description ?? '');
   const [installments, setInst] = useState(tx?.installments?.count ?? 1);
-  const [saving, setSaving] = useState(tx?.saving ?? false);
+  const [saving, setSaving] = useState(tx?.saving ?? preset?.saving ?? false);
   const [adjSign, setAdjSign] = useState<1 | -1>(tx && tx.kind === 'adjustment' && tx.amount < 0 ? -1 : 1);
   const acc = accs.find((a) => a.id === accountId);
   const cats = save.finance.categories.filter((c) => c.kind === (kind === 'income' ? 'income' : 'expense'));
