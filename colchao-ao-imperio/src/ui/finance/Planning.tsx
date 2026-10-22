@@ -5,7 +5,8 @@ import { averageMonthlyExpense, goalProgress, monthSummary } from '../../finance
 import * as A from '../../state/actions';
 import type { Goal, RecurringRule, SaveData } from '../../state/types';
 import { isLiability } from '../../state/types';
-import { act, Confirm, Modal, MoneyInput, Progress, Seg } from '../common';
+import { act, Confirm, Modal, MoneyInput, Progress, Seg, toast } from '../common';
+import { suggest503020, type BudgetSuggestion } from '../../finance/budget5030';
 
 export function PlanningView({ save }: { save: SaveData }) {
   const [sub, setSub] = useState<'recorrentes' | 'metas' | 'orcamento' | 'categorias'>('recorrentes');
@@ -185,12 +186,28 @@ function BudgetView({ save }: { save: SaveData }) {
   const mk = monthKey(todayISO());
   const ms = monthSummary(save.finance, mk);
   const [editing, setEditing] = useState<string | null>(null);
+  const [sug, setSug] = useState<BudgetSuggestion | 'none' | null>(null);
   const [val, setVal] = useState<Cents | null>(null);
   const cats = save.finance.categories.filter((c) => c.kind === 'expense');
   const totalBudget = save.finance.budgets.reduce((s, b) => s + b.limit, 0);
   return (
     <>
       <div className="small">Limites de gasto por categoria neste mês. Total orçado: <b>{formatBRL(totalBudget)}</b> · gasto: <b>{formatBRL(ms.expense)}</b></div>
+      <button className="btn sm gold" style={{ marginTop: 8 }} onClick={() => setSug(suggest503020(save.finance) ?? 'none')}>Sugerir orçamento 50/30/20</button>
+      {sug === 'none' && <div className="small muted" style={{ marginTop: 6 }}>Registre suas receitas (salário, renda) para eu calcular a sugestão.</div>}
+      {sug && sug !== 'none' && (
+        <Modal title="Orçamento 50/30/20" onClose={() => setSug(null)} wide>
+          <div className="small" style={{ lineHeight: 1.6 }}>Renda média: <b>{formatBRL(sug.income)}</b>/mês. Regra: <b>50%</b> necessidades ({formatBRL(Math.round(sug.income * 0.5))}), <b>30%</b> desejos ({formatBRL(Math.round(sug.income * 0.3))}), <b>20%</b> para guardar ({formatBRL(sug.save)}). Dividi cada parte pelo que você já costuma gastar.</div>
+          <table className="tbl" style={{ marginTop: 8 }}>
+            <thead><tr><th>Categoria</th><th>Grupo</th><th className="r">Gasto médio</th><th className="r">Limite sugerido</th></tr></thead>
+            <tbody>{sug.lines.map((l) => <tr key={l.categoryId}><td>{save.finance.categories.find((c) => c.id === l.categoryId)?.name}</td><td className="tiny">{l.group}</td><td className="r">{formatBRL(l.spent)}</td><td className="r">{formatBRL(l.limit)}</td></tr>)}</tbody>
+          </table>
+          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 10 }}>
+            <button className="btn ghost" onClick={() => setSug(null)}>Agora não</button>
+            <button className="btn primary" onClick={() => { for (const l of sug.lines) act(() => A.setBudget({ categoryId: l.categoryId, limit: l.limit })); toast('Orçamento aplicado!', { kind: 'ok', icon: 'check' }); setSug(null); }}>Aplicar limites</button>
+          </div>
+        </Modal>
+      )}
       <div className="list" style={{ marginTop: 8 }}>
         {cats.map((c) => {
           const b = save.finance.budgets.find((x) => x.categoryId === c.id);

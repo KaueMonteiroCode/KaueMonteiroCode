@@ -4,6 +4,7 @@ import { getProperty } from '../game/properties';
 import { checkPlacement, findFreeSpot, roomInfo, walkGrid, type RoomInfo } from '../game/room';
 import { getStyle, LIGHT_THEMES } from '../game/styles';
 import { drawAvatar, type AvatarAnim } from './avatar';
+import { drawPet, type PetKind } from './pet';
 import { isoX, isoY, screenToTile, shade, TH, TW, ZS, hsl } from './iso';
 import { findPath, nearestFree } from './pathfind';
 import {
@@ -29,6 +30,8 @@ export interface Actor {
   onArrive?: () => void;
   speech?: { text: string; until: number };
   isPlayer: boolean;
+  /** bichinho de estimação */
+  pet?: { kind: PetKind; color: number };
   seatUid?: number;
   idleUntil?: number;
   name?: string;
@@ -49,6 +52,7 @@ export interface EngineCallbacks {
   onUse?: (def: ItemDef, uid: number) => void;
   onHint?: (text: string) => void;
   onPreview?: () => void;
+  onPet?: () => void;
 }
 
 const SAYINGS: Record<string, string[]> = {
@@ -90,6 +94,7 @@ export class GameEngine {
   hoverUid: number | null = null;
   player: Actor;
   npcs: Actor[] = [];
+  pet: Actor | null = null;
   particles: Particle[] = [];
   floats: FloatText[] = [];
   cb: EngineCallbacks = {};
@@ -135,12 +140,13 @@ export class GameEngine {
     this.reduceMotion = save.settings.reduceMotion;
     this.showGrid = save.settings.showGrid;
     this.rebuild();
+    this.syncPet(save);
     if (propChanged) {
       this.spawnPlayer();
       this.spawnNpcs();
       this.fit(true);
     } else {
-      for (const a of [this.player, ...this.npcs]) this.revalidateActor(a);
+      for (const a of this.allActors()) this.revalidateActor(a);
     }
   }
 
@@ -163,6 +169,76 @@ export class GameEngine {
     if (this.grid[px]?.[py] === false) return;
     const f = nearestFree(this.grid, a.x, a.y) ?? [0, 0];
     Object.assign(a, { x: f[0] + 0.5, y: f[1] + 0.5, z: 0, path: [], anim: 'idle' });
+  }
+
+  /** Foto do ambiente: o mundo ampliado em pixels nítidos, com uma legenda. */
+  snapshot(caption: string, sub: string): HTMLCanvasElement | null {
+    if (!this.room || !this.save) return null;
+    this.render();
+    const scale = this.world.width < 700 ? 3 : 2;
+    const pad = 24, footer = 54;
+    const c = document.createElement('canvas');
+    c.width = this.world.width * scale + pad * 2;
+    c.height = this.world.height * scale + pad * 2 + footer;
+    const ctx = c.getContext('2d')!;
+    const prop = getProperty(this.save.game.currentProperty);
+    const g = ctx.createRadialGradient(c.width / 2, c.height * 0.45, 10, c.width / 2, c.height / 2, Math.max(c.width, c.height) * 0.7);
+    g.addColorStop(0, shade(prop.outside, 0.15)); g.addColorStop(1, prop.outside);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this.world, pad, pad, this.world.width * scale, this.world.height * scale);
+    ctx.fillStyle = 'rgba(14,11,20,0.85)'; ctx.fillRect(0, c.height - footer, c.width, footer);
+    ctx.fillStyle = '#ffd34d'; ctx.font = 'bold 18px "Press Start 2P", monospace'; ctx.textBaseline = 'middle';
+    ctx.fillText(caption, 16, c.height - footer / 2 - 9);
+    ctx.fillStyle = '#c9c0d6'; ctx.font = '13px system-ui, sans-serif';
+    ctx.fillText(sub, 16, c.height - footer / 2 + 13);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#9187a3';
+    ctx.fillText('Do Colchão ao Império', c.width - 16, c.height - footer / 2 + 13);
+    return c;
+  }
+
+  allActors(): Actor[] { return this.pet ? [this.player, ...this.npcs, this.pet] : [this.player, ...this.npcs]; }
+
+  private syncPet(save: SaveData) {
+    const want = save.game.pet;
+    if (!want) { this.pet = null; return; }
+    if (this.pet && this.pet.pet?.kind === want.kind) { this.pet.pet.color = want.color; this.pet.name = want.name; return; }
+    const r = this.room!;
+    const f = nearestFree(this.grid, this.player.x + 1, this.player.y + 1) ?? [0, 0];
+    this.pet = { id: 'pet', name: want.name, isPlayer: false, avatar: this.player.avatar, x: f[0] + 0.5, y: f[1] + 0.5, z: 0, dir: 0, anim: 'idle', path: [], speed: 2.8, pet: { kind: want.kind as PetKind, color: want.color }, idleUntil: performance.now() + 1500 };
+    void r;
+  }
+
+  private updatePet(a: Actor, dt: number, now: number) {
+    if (a.path.length) {
+      const [tx, ty] = a.path[0];
+      const gx = tx + 0.5, gy = ty + 0.5, dx = gx - a.x, dy = gy - a.y, dist = Math.hypot(dx, dy), step = a.speed * dt;
+      this.faceTowards(a, gx, gy); a.anim = 'walk';
+      if (dist <= step) { a.x = gx; a.y = gy; a.path.shift(); if (!a.path.length) a.anim = Math.random() < 0.5 ? 'sit' : 'idle'; }
+      else { a.x += (dx / dist) * step; a.y += (dy / dist) * step; }
+      return;
+    }
+    if (a.idleUntil && now < a.idleUntil) return;
+    a.idleUntil = now + 2500 + Math.random() * 4000;
+    const p = this.player;
+    const far = Math.hypot(p.x - a.x, p.y - a.y) > 2.5;
+    const tx = far ? p.x + (Math.random() < 0.5 ? -1 : 1) : a.x + (Math.random() * 4 - 2);
+    const ty = far ? p.y + (Math.random() < 0.5 ? -1 : 1) : a.y + (Math.random() * 4 - 2);
+    const f = nearestFree(this.grid, tx, ty);
+    if (!f) return;
+    const path = findPath(this.grid, Math.floor(a.x), Math.floor(a.y), f[0], f[1]);
+    if (path && path.length > 1) a.path = path.slice(1);
+    else a.anim = 'sit';
+  }
+
+  private petPet() {
+    const a = this.pet!;
+    const sound: Record<string, string> = { gato: 'Miau! ♥', cachorro: 'Au au! ♥', coelho: '♥ ♥', papagaio: 'Economiza! Economiza!' };
+    this.say(a, sound[a.pet!.kind] ?? '♥', 2);
+    a.anim = 'sit'; a.path = [];
+    const sx = this.O.x + isoX(a.x, a.y), sy = this.O.y + isoY(a.x, a.y, 0.6);
+    if (!this.reduceMotion) for (let i = 0; i < 6; i++) this.particles.push({ x: sx, y: sy, vx: (Math.random() - 0.5) * 30, vy: -30 - Math.random() * 30, c: '#ff6b9a', life: 0, max: 1.2, r: 2, kind: 'coin' });
+    this.cb.onPet?.();
   }
 
   private spawnNpcs() {
@@ -572,6 +648,7 @@ export class GameEngine {
     if (this.mode === 'play' && now - this.lastInput > 25000 && now > this.nextIdle) this.idleLife(now);
     this.updateActor(this.player, dt, now);
     for (const n of this.npcs) this.updateActor(n, dt, now);
+    if (this.pet) this.updatePet(this.pet, dt, now);
     for (const p of this.particles) {
       p.life += dt;
       p.vy += (p.kind === 'confetti' ? 120 : 220) * dt;
@@ -655,9 +732,9 @@ export class GameEngine {
     const fs = Math.round(11 * this.dpr);
     main.font = `bold ${fs}px "Press Start 2P", ui-monospace, monospace`;
     const now = performance.now();
-    for (const a of [this.player, ...this.npcs]) {
+    for (const a of this.allActors()) {
       if (a.speech && now < a.speech.until) {
-        const head = this.worldToScreen(this.O.x + isoX(a.x, a.y), this.O.y + isoY(a.x, a.y, a.z + (a.anim === 'sleep' ? 0.9 : 1.95)));
+        const head = this.worldToScreen(this.O.x + isoX(a.x, a.y), this.O.y + isoY(a.x, a.y, a.z + (a.pet ? 0.75 : a.anim === 'sleep' ? 0.9 : 1.95)));
         main.font = `${Math.round(10 * this.dpr)}px "Press Start 2P", ui-monospace, monospace`;
         const tw = main.measureText(a.speech.text).width;
         const bw = tw + 16 * this.dpr, bh = 22 * this.dpr;
@@ -686,9 +763,9 @@ export class GameEngine {
 
   private insertActors(): Drawable[] {
     const list = [...this.staticList];
-    const actors = [this.player, ...this.npcs].map((a): DrawActor => {
-      const r = 0.22;
-      const h = a.anim === 'sleep' ? 0.5 : a.anim === 'sit' || a.anim === 'type' ? 1.2 : 1.7;
+    const actors = this.allActors().map((a): DrawActor => {
+      const r = a.pet ? 0.18 : 0.22;
+      const h = a.pet ? 0.5 : a.anim === 'sleep' ? 0.5 : a.anim === 'sit' || a.anim === 'type' ? 1.2 : 1.7;
       // dormindo: caixa alongada
       const s = a.anim === 'sleep'
         ? { x0: a.x - 0.45, y0: a.y - 0.45, z0: a.z, x1: a.x + 0.45, y1: a.y + 0.45, z1: a.z + h }
@@ -724,7 +801,8 @@ export class GameEngine {
       const a = d.a;
       ctx.save();
       ctx.translate(Math.round(this.O.x + isoX(a.x, a.y)), Math.round(this.O.y + isoY(a.x, a.y, a.z)));
-      drawAvatar(ctx, a.avatar, { dir: a.dir, anim: a.anim, t: this.reduceMotion ? 0 : this.t + a.id.length, lie: a.lie });
+      if (a.pet) { ctx.scale(1.3, 1.3); } if (a.pet) drawPet(ctx, a.pet.kind, a.pet.color, this.reduceMotion ? 0 : this.t, a.anim === 'walk', a.dir === 1 || a.dir === 2, a.anim === 'sit');
+      else drawAvatar(ctx, a.avatar, { dir: a.dir, anim: a.anim, t: this.reduceMotion ? 0 : this.t + a.id.length, lie: a.lie });
       ctx.restore();
     }
   }
@@ -1109,6 +1187,12 @@ export class GameEngine {
       if (!this.hoverPlace.ok) { this.cb.onPlaceInvalid?.(this.hoverPlace.reason ?? 'Posição inválida'); return; }
       this.cb.onPlace?.(this.hoverPlace.p, this.place);
       return;
+    }
+    // carinho no bichinho
+    if (this.pet && this.mode === 'play') {
+      const w = this.screenToWorld(sx, sy);
+      const px = this.O.x + isoX(this.pet.x, this.pet.y), py = this.O.y + isoY(this.pet.x, this.pet.y, 0);
+      if (Math.abs(w.x - px) < 14 && w.y < py + 4 && w.y > py - 24) { this.petPet(); return; }
     }
     const uid = this.pick(sx, sy);
     if (this.mode === 'edit') {

@@ -1,6 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { todayISO } from '../core/dates';
 import { saveFile } from '../core/download';
+import { SyncCard } from './SyncPanel';
+import { canInstall, isInstalled, onInstallChange, promptInstall, pwaSupported } from '../core/pwa';
 import * as A from '../state/actions';
 import { eraseEverything, flush, getState, replaceState, undoRestore } from '../state/store';
 import type { SaveData } from '../state/types';
@@ -20,7 +22,7 @@ export function SettingsPanel({ save, onClose, onExit }: { save: SaveData; onClo
   const toggle = (k: keyof typeof s) => act(() => A.setSettings({ [k]: !s[k] }));
 
   return (
-    <Drawer title="Ajustes e backup" icon="gear" onClose={onClose}>
+    <Drawer help="settings" title="Ajustes e backup" icon="gear" onClose={onClose}>
       <div className="card">
         <b>Jogo</b>
         {([['sound', 'Efeitos sonoros'], ['music', 'Música ambiente lo-fi'], ['reduceMotion', 'Reduzir animações'], ['showGrid', 'Mostrar grade no chão']] as const).map(([k, l]) => (
@@ -33,6 +35,8 @@ export function SettingsPanel({ save, onClose, onExit }: { save: SaveData; onClo
           <kbd>E</kbd> Economizei · <kbd>F</kbd> Finanças · <kbd>L</kbd> Loja · <kbd>D</kbd> Decorar · <kbd>I</kbd> Inventário · <kbd>M</kbd> Missões · <kbd>C</kbd> Conquistas · <kbd>P</kbd> Personagem · <kbd>R</kbd> girar ao posicionar · <kbd>+</kbd>/<kbd>-</kbd> zoom · <kbd>Esc</kbd> fechar
         </div>
       </div>
+      <InstallCard />
+      <SyncCard />
       <div className="card">
         <b>Backup e restauração</b>
         <p className="small muted" style={{ lineHeight: 1.6 }}>Seus dados ficam só neste navegador (IndexedDB). Faça backups para não perder nada se limpar o navegador ou trocar de computador.</p>
@@ -79,5 +83,20 @@ export function SettingsPanel({ save, onClose, onExit }: { save: SaveData; onClo
       {wipe === 1 && <Confirm title="Apagar tudo?" text="Lançamentos, contas, móveis e progresso serão apagados deste navegador. Não há como desfazer sem um backup." yes="Continuar" danger onClose={() => setWipe(0)} onYes={() => setTimeout(() => setWipe(2), 50)} />}
       {wipe === 2 && <Confirm title="Tem certeza absoluta?" text="Última confirmação. Tudo será apagado agora." yes="Apagar definitivamente" danger onClose={() => setWipe(0)} onYes={async () => { await eraseEverything(); onExit(); }} />}
     </Drawer>
+  );
+}
+
+function InstallCard() {
+  const [, force] = useState(0);
+  useEffect(() => onInstallChange(() => force((n) => n + 1)), []);
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return (
+    <div className="card">
+      <b>Instalar como aplicativo</b>
+      {isInstalled() ? <div className="small pos" style={{ marginTop: 4 }}>Já está instalado neste aparelho.</div>
+        : canInstall() ? <><div className="small muted" style={{ margin: '4px 0 8px' }}>Ícone na tela inicial, abre em tela cheia e funciona sem internet.</div><button className="btn primary" onClick={() => void promptInstall()}>Instalar</button></>
+          : pwaSupported() ? <div className="small muted" style={{ marginTop: 4, lineHeight: 1.6 }}>{ios ? 'No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início".' : 'No menu do navegador, escolha "Instalar app" ou "Adicionar à tela inicial".'}</div>
+            : <div className="small muted" style={{ marginTop: 4, lineHeight: 1.6 }}>A instalação funciona quando o jogo é aberto pelo endereço do site (veja o README). Neste modo, use o link ou o arquivo como está.</div>}
+    </div>
   );
 }

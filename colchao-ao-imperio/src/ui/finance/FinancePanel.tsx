@@ -13,11 +13,12 @@ import { CalendarView } from './Calendar';
 import { StatsView } from './Stats';
 import { DataView } from './Data';
 import { PlanningView } from './Planning';
+import { SimulatorView } from './Simulator';
 
 const TABS = [
   { id: 'resumo', label: 'Resumo' }, { id: 'lancamentos', label: 'Lançamentos' }, { id: 'contas', label: 'Contas' },
   { id: 'cartoes', label: 'Cartões' }, { id: 'dividas', label: 'Dívidas' }, { id: 'planejamento', label: 'Recorrentes, metas e orçamento' },
-  { id: 'calendario', label: 'Calendário' }, { id: 'estatisticas', label: 'Estatísticas' }, { id: 'dados', label: 'Importar, exportar e histórico' },
+  { id: 'calendario', label: 'Calendário' }, { id: 'estatisticas', label: 'Estatísticas' }, { id: 'simulador', label: 'Simulador' }, { id: 'dados', label: 'Importar, exportar e histórico' },
 ];
 
 export const ACC_TYPES: { id: AccountType; label: string }[] = [
@@ -30,7 +31,7 @@ export const accTypeLabel = (t: AccountType) => ACC_TYPES.find((x) => x.id === t
 export function FinancePanel({ save, tab, setTab, onClose }: { save: SaveData; tab: string; setTab: (t: string) => void; onClose: () => void }) {
   const go = (t: string) => { setTab(t); if (['calendario', 'estatisticas', 'metas'].includes(t)) A.visit(t); if (t === 'planejamento') A.visit('metas'); };
   return (
-    <Drawer title="Finanças reais" icon="money" onClose={onClose} wide tabs={TABS} tab={tab} setTab={go}>
+    <Drawer help="finance" title="Finanças reais" icon="money" onClose={onClose} wide tabs={TABS} tab={tab} setTab={go}>
       <div className="hint real" style={{ marginBottom: 10 }}>Aqui é <b>dinheiro de verdade</b>, em reais. Nada aqui é gasto pelo jogo. Valores são guardados em centavos, sem arredondamentos.</div>
       {tab === 'resumo' && <Summary save={save} go={go} />}
       {tab === 'lancamentos' && <TransactionsView save={save} />}
@@ -40,6 +41,7 @@ export function FinancePanel({ save, tab, setTab, onClose }: { save: SaveData; t
       {tab === 'planejamento' && <PlanningView save={save} />}
       {tab === 'calendario' && <CalendarView save={save} />}
       {tab === 'estatisticas' && <StatsView save={save} />}
+      {tab === 'simulador' && <SimulatorView save={save} />}
       {tab === 'dados' && <DataView save={save} />}
     </Drawer>
   );

@@ -163,7 +163,7 @@ const ok = (c, m) => { if (!c) throw new Error('FALHOU: ' + m); console.log('  �
   await page.waitForTimeout(3000);
   ok(await page.locator('.drawer h2', { hasText: 'Finanças' }).count() === 1, 'usar o computador abre as finanças sem sair do jogo');
   await shot('computador');
-  await page.locator('.drawer-head button').click();
+  await page.locator('.drawer-head button[aria-label="Fechar painel"]').click();
 
   // ---- melhorias: badge, desfazer, repetir, meta, desejos, inventário, atalhos ----
   ok(await page.locator('.dock button', { hasText: 'Finanças' }).locator('.badge').count() === 1, 'botão Finanças mostra aviso de conta vencida (parcela de dívida atrasada)');
@@ -222,6 +222,53 @@ const ok = (c, m) => { if (!c) throw new Error('FALHOU: ' + m); console.log('  �
   ok(s.game.inventory.some((i) => i.defId.startsWith('planta-cactus') && i.placed), 'inventário: busca + colocar sozinho');
   await page.keyboard.press('Escape');
 
+  // ---- melhorias v3 ----
+  await page.keyboard.press('f');
+  await page.waitForTimeout(200);
+  await tab('Simulador');
+  ok(await page.locator('.card', { hasText: 'Quando chego na minha meta?' }).count() === 1, 'simulador de meta abre');
+  ok(await page.locator('.card', { hasText: 'Quanto economizo antecipando a dívida?' }).locator('table').count() === 1, 'simulador de dívida mostra comparação');
+  await shot('simulador');
+  await page.locator('.drawer-head .help-btn').click();
+  ok(await page.locator('.modal', { hasText: 'Como funcionam as finanças' }).count() === 1, 'botão ? mostra ajuda');
+  await page.keyboard.press('Escape');
+  await tab('Recorrentes');
+  await page.locator('.seg button', { hasText: 'Orçamento' }).click();
+  await btn('Sugerir orçamento 50/30/20').click();
+  await page.waitForTimeout(200);
+  ok(await page.locator('.small', { hasText: 'Registre suas receitas' }).count() === 1 || await page.locator('.modal', { hasText: '50/30/20' }).count() === 1, '50/30/20 responde (sugestão ou pede receitas)');
+  if (await page.locator('.modal').count()) await page.keyboard.press('Escape');
+  await tab('Estatísticas');
+  ok(await page.locator('.card', { hasText: 'Linha do tempo' }).count() === 1, 'linha do tempo nas estatísticas');
+  await page.locator('.drawer-head button[aria-label="Fechar painel"]').click();
+  await page.locator('button[aria-label="Foto do quarto"]').click();
+  await page.waitForTimeout(300);
+  ok(await page.locator('.modal img[alt^="Foto"]').count() === 1, 'foto do quarto gerada');
+  await shot('foto');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('p');
+  await page.waitForTimeout(200);
+  await tab('Bichinho');
+  ok(await page.locator('.card', { hasText: 'Gato' }).count() === 1, 'aba Bichinho lista os pets');
+  await shot('bichinho');
+  await page.locator('.drawer-head button[aria-label="Fechar painel"]').click();
+  await page.locator('.dock button', { hasText: 'Ajustes' }).click();
+  await btn('Gerar código').click();
+  await page.fill('#sync-p1', 'senha123'); await page.fill('#sync-p2', 'senha123');
+  await page.locator('.modal').getByRole('button', { name: 'Gerar', exact: true }).click();
+  const codeTxt = await page.locator('.modal textarea').inputValue({ timeout: 10000 });
+  ok(codeTxt.startsWith('CIMP1:'), 'código de sincronização cifrado gerado');
+  await page.keyboard.press('Escape');
+  await btn('Receber código').click();
+  await page.fill('#sync-in', codeTxt); await page.fill('#sync-pin', 'senha123');
+  await btn('Ver o que muda').click();
+  await page.locator('.modal', { hasText: 'Juntar dados' }).waitFor({ timeout: 8000 }).catch(async () => console.log('toasts:', await page.locator('.toast').allInnerTexts()));
+  ok(await page.locator('.modal', { hasText: 'Juntar dados' }).count() === 1, 'receber código mostra o que muda');
+  await btn('Juntar dados').click();
+  s = await save();
+  ok(new Set(s.finance.transactions.map((t) => t.id)).size === s.finance.transactions.length, 'juntar o próprio código não duplica nada');
+  await page.locator('.drawer-head button[aria-label="Fechar painel"]').click();
+
   // ---- imóveis e personagem ----
   await dock('Imóveis');
   await page.waitForTimeout(200);
@@ -230,7 +277,7 @@ const ok = (c, m) => { if (!c) throw new Error('FALHOU: ' + m); console.log('  �
   await page.locator('.hud-player').click();
   await page.waitForTimeout(200);
   await shot('personagem');
-  await page.locator('.drawer-head button').click();
+  await page.locator('.drawer-head button[aria-label="Fechar painel"]').click();
   await dock('Ajustes');
   await page.waitForTimeout(200);
   await dock('Ajustes');

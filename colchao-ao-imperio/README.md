@@ -120,6 +120,20 @@ Moedas e XP **não são acumulados por evento**: são **recalculados do históri
   missões de história, diárias, semanais e de eventos, histórico de evolução e objetivos de
   curto/médio/longo prazo. Ficar dias sem registrar não pune (a sequência tolera 1 dia de folga).
 
+## Novidades da versão 3
+
+- **Instalar como app (PWA)**: ícone na tela inicial e funcionamento offline quando o jogo é aberto
+  pelo endereço do site. O workflow `.github/workflows/colchao-pages.yml` publica no GitHub Pages:
+  ative em *Settings → Pages → Source: GitHub Actions* e rode o workflow (ou faça merge na `main`).
+- **Sincronizar aparelhos**: Ajustes → Sincronizar gera um código cifrado com senha (PBKDF2 + AES-GCM,
+  no próprio aparelho). No outro aparelho os dados são **somados** (lançamentos dos dois lados ficam).
+- **Importar extrato**: OFX de qualquer banco e CSV do Nubank (conta e cartão), Inter, Itaú; não duplica.
+- **Simulador**: prazo de meta com rendimento e economia de juros antecipando dívidas.
+- **Resumo da semana** ao abrir o jogo, **orçamento 50/30/20** automático, **linha do tempo** do
+  patrimônio com marcos, **bichinho de estimação** liberado por hábitos, **foto do quarto** e **ajuda** (?) em cada painel.
+- Anti-fraude reforçado: só conta a queda do **total** devido (refinanciar não rende), parcela parcial
+  não quita, backup danificado é reparado e há tela de recuperação em vez de tela branca.
+
 ## Limitações conhecidas / pendências
 
 - Sprites são procedurais (formas geométricas pintadas), não arte desenhada à mão. A estética
@@ -127,6 +141,7 @@ Moedas e XP **não são acumulados por evento**: são **recalculados do históri
 - Importação CSV cobre o formato do próprio app e extratos simples (`data;descricao;valor`);
   extratos OFX e formatos específicos de bancos não são lidos.
 - A fonte "Press Start 2P" vem do Google Fonts; offline cai para uma fonte monoespaçada.
-- Sincronização entre dispositivos **não** está implementada (só o contrato em `src/core/sync.ts`).
-  Use backup/restauração para trocar de navegador.
-- Sem PWA instalável ainda (funciona offline depois de carregado, mas sem service worker).
+- A sincronização é manual (código com senha), não automática: não há servidor. Decoração e compras
+  vêm do aparelho usado por último; finanças dos dois lados são somadas.
+- A instalação como app e o offline completo exigem abrir pelo endereço do site (GitHub Pages);
+  o arquivo local e o link do Claude não permitem service worker.

@@ -15,7 +15,7 @@ export function AchievementsPanel({ save, progress, onClose }: { save: SaveData;
   const fmt = (a: (typeof list)[number], v: number) => (a.def.money ? formatBRL(v) : String(Math.min(v, a.target)));
 
   return (
-    <Drawer title="Conquistas" icon="trophy" onClose={onClose} wide tab={tab} setTab={setTab} tabs={[{ id: 'lista', label: 'Lista' }, { id: 'arvore', label: 'Árvore' }, { id: 'colecoes', label: 'Coleções' }, { id: 'evolucao', label: 'Evolução' }]}>
+    <Drawer help="achievements" title="Conquistas" icon="trophy" onClose={onClose} wide tab={tab} setTab={setTab} tabs={[{ id: 'lista', label: 'Lista' }, { id: 'arvore', label: 'Árvore' }, { id: 'colecoes', label: 'Coleções' }, { id: 'evolucao', label: 'Evolução' }]}>
       <div className="row between" style={{ marginBottom: 8 }}>
         <div className="small"><b className="gold">{progress.unlockedCount}</b> de {progress.achievements.length} desbloqueadas</div>
         <div style={{ width: 160 }}><Bar value={progress.unlockedCount} max={progress.achievements.length} kind="gold" /></div>

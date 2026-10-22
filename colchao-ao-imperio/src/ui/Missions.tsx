@@ -17,7 +17,7 @@ export function MissionsPanel({ save, onClose }: { save: SaveData; onClose: () =
   const events = activeEvents();
   const groups = ['historia', 'evento', 'diaria', 'semanal'] as const;
   return (
-    <Drawer title="Missões" icon="target" onClose={onClose}>
+    <Drawer help="missions" title="Missões" icon="target" onClose={onClose}>
       <div className="hint" style={{ marginBottom: 10 }}>Missões premiam hábitos saudáveis, nunca gastar. Ficou uns dias sem registrar? Sem problema: as diárias simplesmente renovam, nada é perdido.</div>
       <WishProgress save={save} coins={computeProgress(save).coins} />
       {events.map((e) => <div key={e.id} className="card" style={{ boxShadow: `0 0 0 2px ${e.color}` }}><b style={{ color: e.color }}>{e.name}</b><div className="small muted">{e.desc} Itens exclusivos na loja enquanto durar.</div></div>)}

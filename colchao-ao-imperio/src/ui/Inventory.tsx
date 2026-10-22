@@ -22,7 +22,7 @@ export function InventoryPanel({ save, onClose, onPlace }: { save: SaveData; onC
   const stored = save.game.inventory.filter((i) => !i.placed).length;
 
   return (
-    <Drawer title="Inventário" icon="box" onClose={onClose} wide>
+    <Drawer help="inventory" title="Inventário" icon="box" onClose={onClose} wide>
       <div className="row wrap between" style={{ marginBottom: 10 }}>
         <div className="seg" style={{ minWidth: 300 }}>
           {(['guardados', 'aqui', 'todos'] as const).map((f) => <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>{f === 'guardados' ? `Guardados (${stored})` : f === 'aqui' ? 'Neste imóvel' : 'Todos'}</button>)}

@@ -53,7 +53,7 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
   const room = save.game.rooms[save.game.currentProperty];
 
   return (
-    <Drawer title="Loja de móveis" icon="shop" onClose={onClose} wide>
+    <Drawer help="shop" title="Loja de móveis" icon="shop" onClose={onClose} wide>
       <div className="row wrap between" style={{ marginBottom: 8 }}>
         <div className="small">Saldo: <Coins n={progress.coins} className="gold" /> <span className="muted tiny">(moedas virtuais)</span></div>
         <div className="row">

@@ -17,7 +17,7 @@ export function PropertiesPanel({ save, progress, onClose }: { save: SaveData; p
   const size = roomSize(cur, room.expansion);
 
   return (
-    <Drawer title="Imóveis" icon="house" onClose={onClose} tab={tab} setTab={setTab} tabs={[{ id: 'imoveis', label: 'Imóveis' }, { id: 'atual', label: 'Este ambiente' }, { id: 'layouts', label: 'Layouts salvos' }]}>
+    <Drawer help="properties" title="Imóveis" icon="house" onClose={onClose} tab={tab} setTab={setTab} tabs={[{ id: 'imoveis', label: 'Imóveis' }, { id: 'atual', label: 'Este ambiente' }, { id: 'layouts', label: 'Layouts salvos' }]}>
       {tab === 'imoveis' && (
         <div className="list">
           {PROPERTIES.map((p) => {

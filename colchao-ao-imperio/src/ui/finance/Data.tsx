@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { formatDateBR, todayISO } from '../../core/dates';
 import { formatBRL } from '../../core/money';
-import { exportCSV, interpretCSV, type ImportRow } from '../../finance/csv';
+import { exportCSV, interpretStatement, type ImportRow } from '../../finance/csv';
 import * as A from '../../state/actions';
 import type { SaveData } from '../../state/types';
 import { act, errToast, ExportBox, Modal, toast } from '../common';
@@ -23,7 +23,7 @@ export function DataView({ save }: { save: SaveData }) {
       if (r.error || (skipDup && r.duplicate)) { skipped++; continue; }
       const catId = r.categoryName ? cats.find((c) => c.name.toLowerCase() === r.categoryName!.toLowerCase())?.id : undefined;
       const accId = (r.accountName && accs.find((a) => a.name.toLowerCase() === r.accountName!.toLowerCase())?.id) || acc;
-      const ok = act(() => { A.addTransaction({ kind: r.kind, amount: r.amount, date: r.date, accountId: accId, categoryId: catId, description: r.description, status: r.date > todayISO() ? 'pending' : 'confirmed' }); return true; });
+      const ok = act(() => { A.addTransaction({ kind: r.kind, amount: r.amount, date: r.date, accountId: accId, categoryId: catId, description: r.description, status: r.date > todayISO() ? 'pending' : 'confirmed', tags: r.extId ? [`ext:${r.extId}`] : undefined }); return true; });
       if (ok) n++; else skipped++;
     }
     toast(`${n} lançamentos importados${skipped ? `, ${skipped} ignorados` : ''}.`, { kind: 'ok' });
@@ -39,16 +39,16 @@ export function DataView({ save }: { save: SaveData }) {
         <button className="btn primary" onClick={() => { setCsv(exportCSV(save.finance, incDeleted)); A.visit('csv-export'); }}>Exportar CSV</button>
       </div>
       <div className="card">
-        <b>Importar CSV</b>
-        <p className="small muted">Colunas mínimas: <code>data</code> e <code>valor</code> (negativo = despesa). Opcionais: <code>descricao</code>, <code>tipo</code>, <code>categoria</code>, <code>conta</code>. Você revisa tudo antes de confirmar.</p>
+        <b>Importar extrato (OFX ou CSV)</b>
+        <p className="small muted">Aceita <b>OFX</b> (no app do banco: Extrato → Exportar → OFX) e <b>CSV</b> do Nubank (conta e fatura do cartão), Inter, Itaú ou qualquer planilha com colunas de data e valor (negativo = despesa). Lançamentos já importados são reconhecidos e não duplicam. Você revisa tudo antes de confirmar.</p>
         <label>Conta padrão para as linhas sem conta</label>
         <select value={acc} onChange={(e) => setAcc(e.target.value)}>{save.finance.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-        <button className="btn" style={{ marginTop: 8 }} disabled={!acc} onClick={() => fileRef.current?.click()}>Escolher arquivo CSV</button>
+        <button className="btn" style={{ marginTop: 8 }} disabled={!acc} onClick={() => fileRef.current?.click()}>Escolher arquivo do extrato</button>
         {!save.finance.accounts.length && <div className="small neg">Cadastre uma conta antes de importar.</div>}
-        <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={async (e) => {
+        <input ref={fileRef} type="file" accept=".csv,.ofx,.txt,text/csv" style={{ display: 'none' }} onChange={async (e) => {
           const f = e.target.files?.[0]; e.target.value = '';
           if (!f) return;
-          try { setRows(interpretCSV(await f.text(), save.finance)); } catch (err) { errToast(err); }
+          try { setRows(interpretStatement(await f.text(), save.finance)); } catch (err) { errToast(err); }
         }} />
       </div>
       <div className="card">

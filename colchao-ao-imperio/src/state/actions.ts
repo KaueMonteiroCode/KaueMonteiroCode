@@ -9,6 +9,7 @@ import { checkPlacement, findFreeSpot, roomInfo } from '../game/room';
 import { getStyle } from '../game/styles';
 import { activeEvents } from '../game/meta';
 import { PREMIUM_ACCESSORIES } from '../engine/avatar';
+import { PETS } from '../engine/pet';
 import { roomDefaults, starterItems } from './defaults';
 import { getState, update } from './store';
 import type {
@@ -110,6 +111,7 @@ export interface TxInput {
   recurringId?: string;
   occurrenceDate?: ISODate;
   debtInstallment?: Transaction['debtInstallment'];
+  tags?: string[];
 }
 
 function validateTx(d: SaveData, i: TxInput) {
@@ -151,6 +153,7 @@ export function addTransaction(i: TxInput): string {
       status: i.status ?? (i.date > todayISO() ? 'pending' : 'confirmed'),
       saving: i.kind === 'income' && i.saving ? true : undefined,
       recurringId: i.recurringId, occurrenceDate: i.occurrenceDate, debtInstallment: i.debtInstallment,
+      tags: i.tags?.length ? i.tags : undefined,
       createdAt: now, updatedAt: now,
     };
     if (i.installments && i.installments > 1) {
@@ -197,6 +200,7 @@ export function deleteTransaction(id: string) {
     const { history, ...before } = t;
     t.deleted = true;
     t.deletedAt = Date.now();
+    t.updatedAt = Date.now();
     t.history = [...(history ?? []), { at: Date.now(), action: 'delete', before }];
     audit(d, 'lancamento:excluir', `${t.kind} ${formatBRL(t.amount)} em ${t.date} — ${t.description}`);
   });
@@ -214,6 +218,7 @@ export function restoreTransaction(id: string) {
     const { history, ...before } = t;
     t.deleted = false;
     t.deletedAt = undefined;
+    t.updatedAt = Date.now();
     t.history = [...(history ?? []), { at: Date.now(), action: 'restore', before }];
     audit(d, 'lancamento:restaurar', id);
   });
@@ -364,6 +369,14 @@ export function buyItem(defId: string, opts: { place?: boolean } = {}): number {
     d.game.coinLedger.push({ id: uid('c_'), at: Date.now(), amount: -def.price, reason: `Compra: ${def.name}`, kind: 'buy', ref: String(newUid) });
   });
   return newUid;
+}
+
+export function setPet(pet: { kind: string; color: number; name: string } | null) {
+  if (pet) {
+    const def = PETS.find((p) => p.id === pet.kind) ?? fail('Bichinho desconhecido.');
+    if (!computeProgress(getState()).achievements.find((a) => a.def.id === def!.ach)?.unlocked) fail(`Ainda bloqueado: ${def!.how}.`);
+  }
+  update((d) => { d.game.pet = pet ? { kind: pet.kind, color: pet.color, name: pet.name.trim().slice(0, 20) || 'Pet' } : null; });
 }
 
 export function toggleWish(defId: string) {

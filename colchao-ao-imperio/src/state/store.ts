@@ -95,6 +95,13 @@ export async function replaceState(raw: unknown): Promise<string[]> {
   return report.repairs;
 }
 
+/** Aplica dados juntados de outro aparelho (guarda o estado anterior para desfazer). */
+export async function applyMerged(s: SaveData) {
+  if (state) await idbSet('save-before-restore', state);
+  setState(normalizeSave(s));
+  await flush();
+}
+
 /** Volta ao estado de antes da última restauração (se houver). */
 export async function undoRestore(): Promise<boolean> {
   const prev = await idbGet<SaveData>('save-before-restore');

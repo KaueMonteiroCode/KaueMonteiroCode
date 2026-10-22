@@ -5,6 +5,7 @@ import { drawItemThumb, drawStyleThumb } from '../engine/thumbs';
 import { getStyle } from '../game/styles';
 import { todayISO } from '../core/dates';
 import { saveFile } from '../core/download';
+import { HELP, HelpBody } from './help';
 import { sfx } from '../audio/sfx';
 
 /* ---------------- ícones pixel (SVG gerado de bitmaps) ---------------- */
@@ -36,6 +37,7 @@ const ICONS: Record<string, { map: string[]; colors: Record<string, string> }> =
   card: { map: ['XXXXXXXX', 'XBBBBBBX', 'XXXXXXXX', 'XBBBBBBX', 'XBYYBBBX', 'XBBBBBBX', 'XXXXXXXX', '........'], colors: { X: '#1e3a8a', B: '#3b82f6', Y: '#fde047' } },
   pig: { map: ['........', '.PPPPPP.', 'PPPKPPPP', 'PPPPPPPN', 'PPPPPPPN', '.PPPPPP.', '.P.P.P..', '........'], colors: { P: '#f29bb8', K: '#111', N: '#d97895' } },
   hammer: { map: ['XXXXX...', 'XXXXXW..', '...XWW..', '...WW...', '..WW....', '.WW.....', 'WW......', 'W.......'], colors: { X: '#9ca3af', W: '#a16207' } },
+  camera: { map: ['........', '..XX....', 'XXXXXXXX', 'XWWXXWWX', 'XWXLLXWX', 'XWXLLXWX', 'XWWXXWWX', 'XXXXXXXX'], colors: { X: '#9ca3af', W: '#4b5563', L: '#60a5fa' } },
   save: { map: ['XXXXXXX.', 'XWWWWWXX', 'XWWWWWXX', 'XXXXXXXX', 'XBBBBBBX', 'XBWWWWBX', 'XBWWWWBX', 'XXXXXXXX'], colors: { X: '#1e3a8a', W: '#e5e7eb', B: '#3b82f6' } },
 };
 
@@ -115,15 +117,18 @@ export function Modal({ title, children, onClose, wide }: { title: ReactNode; ch
   );
 }
 
-export function Drawer({ title, icon, children, onClose, tabs, tab, setTab, wide }: {
+export function Drawer({ title, icon, children, onClose, tabs, tab, setTab, wide, help }: {
   title: ReactNode; icon?: string; children: ReactNode; onClose: () => void; wide?: boolean;
-  tabs?: { id: string; label: string }[]; tab?: string; setTab?: (t: string) => void;
+  tabs?: { id: string; label: string }[]; tab?: string; setTab?: (t: string) => void; help?: string;
 }) {
+  const [showHelp, setShowHelp] = useState(false);
   return (
     <aside className={`drawer ${wide ? 'wide' : ''}`}>
       <div className="drawer-head">
         {icon && <Icon name={icon} size={20} />}
         <h2>{title}</h2>
+        {help && <button className="btn ghost icon help-btn" onClick={() => setShowHelp(true)} aria-label="Ajuda" title="Ajuda">?</button>}
+        {help && showHelp && <Modal title={HELP[help]?.title ?? 'Ajuda'} onClose={() => setShowHelp(false)}><HelpBody id={help} />{help === 'finance' || help === 'shop' ? <HelpBody id="coins" /> : null}</Modal>}
         <button className="btn ghost icon" onClick={onClose} aria-label="Fechar painel"><Icon name="close" /></button>
       </div>
       {tabs && (

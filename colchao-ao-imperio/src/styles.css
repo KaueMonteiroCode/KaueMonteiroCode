@@ -263,3 +263,7 @@ table.tbl td.r, table.tbl th.r { text-align: right; }
   .drawer, .drawer.wide { height: calc(100% - 64px - env(safe-area-inset-top, 0px)); }
 }
 kbd { font-family: var(--pix); font-size: 9px; background: var(--panel-3); border-radius: 3px; padding: 2px 5px; box-shadow: 0 2px 0 #0e0b14; color: var(--ink); }
+.help-btn { font-family: var(--pix); font-size: 13px; color: var(--gold); width: 32px; height: 32px; }
+.help-body ul { padding-left: 18px; margin: 6px 0; }
+.help-body li { margin: 4px 0; }
+.help-body p { margin: 6px 0; }

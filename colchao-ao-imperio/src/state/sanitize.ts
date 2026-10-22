@@ -129,6 +129,7 @@ export function sanitizeInto(base: SaveData, raw: Record<string, unknown>, rep: 
       seenLevel: Math.max(1, int(g.seenLevel) ?? 1),
       visits: isObj(g.visits) ? (g.visits as Record<string, number>) : {},
       wishlist: strArr(g.wishlist).filter((x) => getItem(x)),
+      pet: isObj(g.pet) && typeof g.pet.kind === 'string' ? { kind: g.pet.kind, color: int(g.pet.color) ?? 0, name: str(g.pet.name, 'Pet').slice(0, 20) } : null,
     },
   };
 }

@@ -53,7 +53,7 @@ function Bars({ data, onTip }: { data: { label: string; a: number; b: number; fu
   );
 }
 
-function Line({ data, label, color = 'var(--income)', dashedFrom, onTip }: { data: { label: string; v: number; full: string }[]; label: string; color?: string; dashedFrom?: number; onTip: (t: Tip | null) => void }) {
+function Line({ data, label, color = 'var(--income)', dashedFrom, onTip, marks }: { data: { label: string; v: number; full: string; marks?: string[] }[]; label: string; color?: string; dashedFrom?: number; onTip: (t: Tip | null) => void; marks?: boolean }) {
   const W = 640, H = 200, L = 52, B = 24, T = 12;
   const minV = Math.min(0, ...data.map((d) => d.v));
   const maxV = niceMax(Math.max(minV < 0 ? 0 : 10000, ...data.map((d) => d.v)));
@@ -71,7 +71,7 @@ function Line({ data, label, color = 'var(--income)', dashedFrom, onTip }: { dat
         const px = ((e.clientX - r.left) / r.width) * W;
         const i = Math.max(0, Math.min(data.length - 1, Math.round(((px - L) / (W - L - 16)) * (data.length - 1))));
         setHover(i);
-        onTip({ x: e.clientX, y: e.clientY, html: <><b>{data[i].full}</b><br />{label}: {formatBRL(data[i].v)}</> });
+        onTip({ x: e.clientX, y: e.clientY, html: <><b>{data[i].full}</b><br />{label}: {formatBRL(data[i].v)}{data[i].marks?.length ? <><br /><span style={{ color: 'var(--gold)' }}>★ {data[i].marks!.join(' · ')}</span></> : null}</> });
       }}
       onPointerLeave={() => { setHover(null); onTip(null); }}>
       {ticks.map((v) => <g key={v}><line x1={L} x2={W - 8} y1={y(v)} y2={y(v)} stroke="#3a3249" /><text x={L - 6} y={y(v) + 3} textAnchor="end">{short(v)}</text></g>)}
@@ -79,6 +79,7 @@ function Line({ data, label, color = 'var(--income)', dashedFrom, onTip }: { dat
       <polyline points={pts.slice(0, split).join(' ')} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
       {split < data.length && <polyline points={pts.slice(split - 1).join(' ')} fill="none" stroke={color} strokeWidth={2} strokeDasharray="5 4" />}
       {data.map((d, i) => (i % Math.ceil(data.length / 8) === 0 || i === data.length - 1) && <text key={i} x={x(i)} y={H - 8} textAnchor="middle">{d.label}</text>)}
+      {marks && data.map((d, i) => d.marks?.length ? <g key={`m${i}`}><line x1={x(i)} x2={x(i)} y1={T} y2={H - B} stroke="var(--gold)" strokeOpacity={0.35} strokeDasharray="2 4" /><path d={`M${x(i)},${H - B - 9} l5,5 l-5,5 l-5,-5 z`} fill="var(--gold)" /></g> : null)}
       {hover != null && <><line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} stroke="#9187a3" strokeDasharray="2 3" /><circle cx={x(hover)} cy={y(data[hover].v)} r={4.5} fill={color} stroke="#221d2e" strokeWidth={2} /></>}
       <text x={x(data.length - 1)} y={y(data[data.length - 1].v) - 8} textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{formatBRL(data[data.length - 1].v, { compact: true })}</text>
     </svg>
@@ -99,6 +100,16 @@ export function StatsView({ save }: { save: SaveData }) {
   const catMax = Math.max(1, ...cats.map((c) => c[1]));
   const catName = (id: string) => fin.categories.find((c) => c.id === id)?.name ?? 'Sem categoria';
   const prog = computeProgress(save);
+  const milestones = useMemo(() => {
+    const out: { at: number; month: string; label: string }[] = [];
+    const mk = (ms: number) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+    for (const e of save.game.coinLedger) if (e.kind === 'property') out.push({ at: e.at, month: mk(e.at), label: e.reason.replace('Imóvel: ', 'Novo imóvel: ') });
+    for (const [id, at] of Object.entries(save.game.seenAchievements)) {
+      const a = prog.achievements.find((x) => x.def.id === id);
+      if (a && a.unlocked && (a.def.group === 'dividas' && id.startsWith('debt-off') || (a.def.group === 'poupanca' && a.def.tier >= 3) || id.startsWith('goal-done') || id.startsWith('posm-'))) out.push({ at, month: mk(at), label: a.def.name });
+    }
+    return out.sort((a, b) => b.at - a.at);
+  }, [save, prog]);
   const totalIn = sums.reduce((s, m) => s + m.income + m.saved, 0), totalOut = sums.reduce((s, m) => s + m.expense, 0);
 
   return (
@@ -121,7 +132,8 @@ export function StatsView({ save }: { save: SaveData }) {
           </div>
           <div className="card">
             <b>Patrimônio líquido (12 meses)</b>
-            <Line data={nw.map((p) => ({ label: monthLabel(p.month), v: p.netWorth, full: monthName(p.month) }))} label="Patrimônio" onTip={setTip} />
+            <div className="legend"><span><i style={{ background: 'var(--income)' }} />Patrimônio líquido</span><span><i style={{ background: 'var(--gold)', transform: 'rotate(45deg) scale(.8)' }} />Marco do jogo</span></div>
+            <Line data={nw.map((p) => ({ label: monthLabel(p.month), v: p.netWorth, full: monthName(p.month), marks: milestones.filter((m) => m.month === p.month).map((m) => m.label) }))} label="Patrimônio" onTip={setTip} marks />
           </div>
           <div className="card">
             <b>Projeção do saldo disponível</b> <span className="chip">simulação</span>
@@ -130,6 +142,12 @@ export function StatsView({ save }: { save: SaveData }) {
           </div>
         </>
       )}
+      <div className="card">
+        <b>Linha do tempo</b>
+        {milestones.length ? milestones.slice(0, 15).map((m) => (
+          <div key={m.at + m.label} className="row small" style={{ marginTop: 5 }}><span className="gold">◆</span><span className="muted nowrap">{new Date(m.at).toLocaleDateString('pt-BR')}</span><span className="grow">{m.label}</span></div>
+        )) : <div className="small muted">Seus grandes momentos aparecem aqui: novos imóveis, dívidas quitadas, metas concluídas, meses no azul.</div>}
+      </div>
       <div className="card">
         <b>Despesas por categoria · {monthName(monthKey(todayISO()))}</b>
         {cats.length ? cats.map(([id, v]) => (

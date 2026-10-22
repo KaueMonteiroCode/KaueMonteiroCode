@@ -3,5 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import './styles.css';
+import { initPWA } from './core/pwa';
+
+initPWA();
 
 createRoot(document.getElementById('root')!).render(<StrictMode><ErrorBoundary><App /></ErrorBoundary></StrictMode>);

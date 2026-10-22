@@ -17,6 +17,9 @@ import { AvatarPreview } from './AvatarEditor';
 import { Onboarding } from './Onboarding';
 import { SavingDialog } from './SavingDialog';
 import { CoinsInfo } from './CoinsInfo';
+import { WeekBrief, weekItems } from './WeekBrief';
+import { PhotoModal } from './PhotoModal';
+import { getProperty } from '../game/properties';
 import { ShopPanel } from './Shop';
 import { InventoryPanel } from './Inventory';
 import { FinancePanel } from './finance/FinancePanel';
@@ -29,6 +32,7 @@ import { SettingsPanel } from './Settings';
 export type PanelId = 'finance' | 'shop' | 'inventory' | 'missions' | 'achievements' | 'properties' | 'avatar' | 'settings';
 
 export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
+  const today = useToday();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [panel, setPanel] = useState<PanelId | null>(null);
@@ -40,8 +44,17 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   const [confirmSell, setConfirmSell] = useState<number | null>(null);
   const [more, setMore] = useState(false);
   const [coinsInfo, setCoinsInfo] = useState(false);
+  const [brief, setBrief] = useState(false);
+  const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null);
+  // lembrete diário ao abrir o jogo: contas vencidas ou vencendo na semana
+  useEffect(() => {
+    if (!save.profile.onboarded || save.game.visits[`brief:${today}`]) return;
+    const w = weekItems(save, today);
+    if (w.overdue.length + w.soon.length > 0) setBrief(true);
+    A.visit('brief');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today, save.profile.onboarded]);
   const afterPlace = useRef<EngineMode>('play');
-  const today = useToday();
   const progress = useMemo(() => computeProgress(save, today), [save, today]);
   const tot = useMemo(() => totals(save.finance), [save]);
 
@@ -173,6 +186,14 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   const sel = selected != null ? save.game.inventory.find((i) => i.uid === selected) : null;
   const selDef = sel ? getItem(sel.defId) : null;
 
+  const takePhoto = () => {
+    const e = engineRef.current; if (!e) return;
+    const sel = e.selected; e.selected = null; e.hoverUid = null;
+    const c = e.snapshot(save.profile.name || 'Meu império', `${progress.titles.find((t) => t.id === save.profile.titleId && t.unlocked)?.name ?? ''} · ${getProperty(save.game.currentProperty).name} · nível ${progress.level}`);
+    e.selected = sel;
+    if (c) { sfx.click(); setPhoto(c); }
+  };
+
   const openPanel = (p: PanelId) => {
     sfx.open();
     setMore(false);
@@ -219,6 +240,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
         <button className="btn icon" aria-label="Aproximar" onClick={() => engineRef.current?.zoomBy(1.2)}><Icon name="zin" /></button>
         <button className="btn icon" aria-label="Afastar" onClick={() => engineRef.current?.zoomBy(1 / 1.2)}><Icon name="zout" /></button>
         <button className="btn icon" aria-label="Ver ambiente inteiro" onClick={() => engineRef.current?.fit()}><Icon name="fit" /></button>
+        <button className="btn icon" aria-label="Foto do quarto" title="Foto do quarto" onClick={takePhoto}><Icon name="camera" /></button>
       </div>
 
       {/* barra do editor */}
@@ -234,6 +256,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
             </>
           ) : <div className="small muted" style={{ alignSelf: 'center' }}>Toque num móvel para selecionar.</div>}
           <button className="btn sm" onClick={() => openPanel('inventory')}><Icon name="box" />Inventário</button>
+          <button className="btn sm" onClick={takePhoto}><Icon name="camera" />Foto</button>
           <button className="btn sm primary" onClick={() => setMode('play')}><Icon name="check" />Concluir</button>
         </div>
       )}
@@ -276,6 +299,8 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
       {panel === 'avatar' && <AvatarPanel save={save} progress={progress} onClose={() => setPanel(null)} />}
       {panel === 'settings' && <SettingsPanel save={save} onClose={() => setPanel(null)} onExit={onExit} />}
 
+      {brief && <WeekBrief save={save} today={today} onClose={() => setBrief(false)} onOpenCalendar={() => { setBrief(false); setFinanceTab('calendario'); setPanel('finance'); A.visit('calendario'); }} />}
+      {photo && <PhotoModal canvas={photo} onClose={() => setPhoto(null)} />}
       {coinsInfo && <CoinsInfo progress={progress} onClose={() => setCoinsInfo(false)} />}
       {saving && <SavingDialog save={save} onClose={() => setSaving(false)} />}
       {confirmSell != null && (() => {

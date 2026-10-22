@@ -232,6 +232,8 @@ export interface GameState {
   visits: Record<string, number>; // telas visitadas (missões de hábito)
   /** Lista de desejos: ids de móveis que o jogador quer comprar */
   wishlist: string[];
+  /** Bichinho de estimação escolhido (liberado por conquistas) */
+  pet?: { kind: string; color: number; name: string } | null;
 }
 
 export interface Profile {
