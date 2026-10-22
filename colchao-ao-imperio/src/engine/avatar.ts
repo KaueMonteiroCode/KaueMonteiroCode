@@ -69,7 +69,8 @@ export function drawAvatar(ctx: CanvasRenderingContext2D, cfg: AvatarConfig, pos
 
   const sitting = anim === 'sit' || anim === 'type';
   const H = 26;
-  const baseY = (sitting ? -12 : 0) + bob + jump;
+  // sentado: o motor já eleva o corpo até a altura do assento; aqui só apoiamos as coxas nele
+  const baseY = (sitting ? 9 : 0) + bob + jump;
   // função de célula (cx, cy) a partir do topo
   const px = (cx: number, cy: number, w: number, h: number, c: string) => {
     ctx.fillStyle = c;
@@ -77,7 +78,7 @@ export function drawAvatar(ctx: CanvasRenderingContext2D, cfg: AvatarConfig, pos
   };
 
   // sombra no chão
-  if (anim !== 'sleep') {
+  if (anim !== 'sleep' && !sitting) {
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();

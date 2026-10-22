@@ -12,7 +12,8 @@
     "qa": "node scripts/qa.mjs",
     "visual": "node scripts/visual.mjs",
     "build:page": "vite build && node scripts/build-artifact.mjs",
-    "build:file": "vite build && node scripts/build-artifact.mjs --standalone"
+    "build:file": "vite build && node scripts/build-artifact.mjs --standalone",
+    "build:exe": "npm run build:file && node scripts/build-exe.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",

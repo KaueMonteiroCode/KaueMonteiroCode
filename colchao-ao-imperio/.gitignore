@@ -3,3 +3,5 @@ dist
 *.log
 e2e-shots
 dist-artifact
+dist-exe
+.cache
