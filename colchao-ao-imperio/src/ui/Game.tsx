@@ -7,15 +7,16 @@ import { currentMissions } from '../game/missions';
 import { activeEvents } from '../game/meta';
 import { formatBRL } from '../core/money';
 import { calendarEvents, totals } from '../finance/ledger';
-import { addDays, todayISO } from '../core/dates';
+import { addDays } from '../core/dates';
 import * as A from '../state/actions';
 import type { Placement, SaveData } from '../state/types';
 import { getState } from '../state/store';
 import { setMusic, setSoundEnabled, sfx } from '../audio/sfx';
-import { act, Coins, Confirm, Icon, toast, Toasts } from './common';
+import { act, Coins, Confirm, Icon, toast, Toasts, useToday } from './common';
 import { AvatarPreview } from './AvatarEditor';
 import { Onboarding } from './Onboarding';
 import { SavingDialog } from './SavingDialog';
+import { CoinsInfo } from './CoinsInfo';
 import { ShopPanel } from './Shop';
 import { InventoryPanel } from './Inventory';
 import { FinancePanel } from './finance/FinancePanel';
@@ -38,8 +39,10 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   const [saving, setSaving] = useState(false);
   const [confirmSell, setConfirmSell] = useState<number | null>(null);
   const [more, setMore] = useState(false);
+  const [coinsInfo, setCoinsInfo] = useState(false);
   const afterPlace = useRef<EngineMode>('play');
-  const progress = useMemo(() => computeProgress(save), [save]);
+  const today = useToday();
+  const progress = useMemo(() => computeProgress(save, today), [save, today]);
   const tot = useMemo(() => totals(save.finance), [save]);
 
   /* ---------- engine ---------- */
@@ -105,8 +108,12 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   };
   useEffect(() => {
     const h = (e: KeyboardEvent) => keysRef.current(e);
+    // qualquer interação (inclusive nos painéis) pausa a "vida própria" do personagem
+    const note = () => engineRef.current?.noteInput();
     window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
+    window.addEventListener('keydown', note);
+    window.addEventListener('pointerdown', note);
+    return () => { window.removeEventListener('keydown', h); window.removeEventListener('keydown', note); window.removeEventListener('pointerdown', note); };
   }, []);
 
   /* ---------- câmera abre espaço para os painéis ---------- */
@@ -158,10 +165,10 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
   }, [progress, save]);
 
   const overdue = useMemo(() => {
-    const t = todayISO();
+    const t = today;
     return calendarEvents(save.finance, addDays(t, -90), t).filter((e) => !e.done && (e.amount < 0 || e.kind === 'pending')).length;
-  }, [save]);
-  const missionsReady = useMemo(() => currentMissions(save).filter((m) => m.done && !m.claimed).length, [save]);
+  }, [save, today]);
+  const missionsReady = useMemo(() => currentMissions(save, today).filter((m) => m.done && !m.claimed).length, [save, today]);
   const events = activeEvents();
   const sel = selected != null ? save.game.inventory.find((i) => i.uid === selected) : null;
   const selDef = sel ? getItem(sel.defId) : null;
@@ -194,10 +201,10 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
             </div>
           </div>
         </button>
-        <div className="hud-box hud-stat" title="Moedas virtuais (só para a loja do jogo)">
-          <span className="lbl">Moedas</span>
-          <span className="val gold"><Coins n={progress.coins} /></span>
-        </div>
+        <button className="hud-box hud-stat" style={{ border: 'none', color: 'inherit', textAlign: 'left' }} title="Moedas virtuais (só para a loja do jogo). Toque para ver de onde vieram." onClick={() => setCoinsInfo(true)}>
+          <span className="lbl">Moedas{progress.coins < 0 ? ' ⚠' : ''}</span>
+          <span className={`val ${progress.coins < 0 ? 'neg' : 'gold'}`}><Coins n={progress.coins} /></span>
+        </button>
         <button className="hud-box hud-stat" style={{ border: 'none', color: 'inherit', textAlign: 'left' }} onClick={() => openPanel('finance')} title="Patrimônio líquido real (ativos - dívidas)">
           <span className="lbl">Patrimônio real</span>
           <span className={`val ${tot.netWorth >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: 11 }}>{formatBRL(tot.netWorth, { compact: true })}</span>
@@ -269,6 +276,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
       {panel === 'avatar' && <AvatarPanel save={save} progress={progress} onClose={() => setPanel(null)} />}
       {panel === 'settings' && <SettingsPanel save={save} onClose={() => setPanel(null)} onExit={onExit} />}
 
+      {coinsInfo && <CoinsInfo progress={progress} onClose={() => setCoinsInfo(false)} />}
       {saving && <SavingDialog save={save} onClose={() => setSaving(false)} />}
       {confirmSell != null && (() => {
         const it = save.game.inventory.find((i) => i.uid === confirmSell); const d = it && getItem(it.defId);

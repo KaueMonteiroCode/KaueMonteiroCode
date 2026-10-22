@@ -71,6 +71,7 @@ export function ShopPanel({ save, progress, onClose, onPlace }: { save: SaveData
         <button className={`btn sm ${cat === 'pisos' ? 'gold' : ''}`} onClick={() => setCat('pisos')}>Pisos</button>
         <button className={`btn sm ${cat === 'paredes-estilo' ? 'gold' : ''}`} onClick={() => setCat('paredes-estilo')}>Papéis de parede</button>
       </div>
+      {progress.coins < 0 && <div className="hint warn" style={{ marginBottom: 10 }}>Seu saldo de moedas está negativo porque um lançamento que gerou moedas foi corrigido ou excluído. A loja libera de novo quando você economizar mais (ou vender um móvel). Toque nas moedas no topo para ver o detalhe.</div>}
       {!styles && <WishProgress save={save} coins={progress.coins} onOpen={(d) => setDetail(d)} />}
       {!styles && <label className="row small" style={{ margin: '0 0 8px' }}><input type="checkbox" checked={onlyAfford} onChange={(e) => setOnlyAfford(e.target.checked)} style={{ width: 'auto' }} /> Só o que posso comprar agora</label>}
 

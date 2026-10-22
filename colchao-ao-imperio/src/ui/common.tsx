@@ -3,6 +3,8 @@ import { centsToInput, formatCoins, parseBRL, type Cents } from '../core/money';
 import { getItem } from '../game/catalog';
 import { drawItemThumb, drawStyleThumb } from '../engine/thumbs';
 import { getStyle } from '../game/styles';
+import { todayISO } from '../core/dates';
+import { saveFile } from '../core/download';
 import { sfx } from '../audio/sfx';
 
 /* ---------------- ícones pixel (SVG gerado de bitmaps) ---------------- */
@@ -48,7 +50,7 @@ export function Icon({ name, size = 16 }: { name: keyof typeof ICONS | string; s
 }
 
 export function Coins({ n, className = '' }: { n: number; className?: string }) {
-  return <span className={`nowrap ${className}`}><Icon name="coin" size={14} /> <span className="pix" style={{ fontSize: 11 }}>{formatCoins(n)}</span></span>;
+  return <span className={`nowrap ${className}`}><Icon name="coin" size={14} /> <span className="pix" style={{ fontSize: 11 }}>{n < 0 ? '-' : ''}{formatCoins(Math.abs(n))}</span></span>;
 }
 
 /* ---------------- toasts ---------------- */
@@ -228,14 +230,10 @@ export function act<T>(fn: () => T, ok?: string): T | undefined {
 export function ExportBox({ title, filename, content, mime, onClose, note }: { title: string; filename: string; content: string; mime: string; onClose: () => void; note?: ReactNode }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [copied, setCopied] = useState(false);
-  const download = () => {
-    try {
-      const blob = new Blob([content], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch { /* bloqueado: use copiar */ }
+  const [dl, setDl] = useState('');
+  const download = async () => {
+    const r = await saveFile(filename, content, mime);
+    setDl(r === 'saved' ? 'Arquivo enviado para download.' : r === 'declined' ? 'Download cancelado.' : 'Não foi possível baixar aqui; use Copiar texto.');
   };
   const copy = async () => {
     try { await navigator.clipboard.writeText(content); setCopied(true); }
@@ -250,6 +248,17 @@ export function ExportBox({ title, filename, content, mime, onClose, note }: { t
         <button className="btn" onClick={download}>Baixar {filename.split('.').pop()?.toUpperCase()}</button>
         <button className="btn primary" onClick={copy}>{copied ? 'Copiado!' : 'Copiar texto'}</button>
       </div>
+      {dl && <div className="small gold" style={{ marginTop: 6, textAlign: 'right' }}>{dl}</div>}
     </Modal>
   );
+}
+
+/** Data de hoje que se atualiza sozinha na virada do dia (com o jogo aberto). */
+export function useToday(): string {
+  const [d, setD] = useState(todayISO());
+  useEffect(() => {
+    const id = setInterval(() => { const t = todayISO(); setD((old) => (old === t ? old : t)); }, 30000);
+    return () => clearInterval(id);
+  }, []);
+  return d;
 }

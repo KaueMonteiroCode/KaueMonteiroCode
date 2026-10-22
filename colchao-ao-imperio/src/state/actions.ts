@@ -1,7 +1,7 @@
 import { addMonthKey, isValidISODate, monthKey, todayISO, type ISODate } from '../core/dates';
 import { uid } from '../core/ids';
 import { assertCents, formatBRL, splitInstallments, type Cents } from '../core/money';
-import { invoiceMonthFor } from '../finance/ledger';
+import { debtInstallments, invoiceMonthFor } from '../finance/ledger';
 import { getItem, sellPrice } from '../game/catalog';
 import { computeProgress } from '../game/progress';
 import { getProperty, expansionPrice, PROPERTIES } from '../game/properties';
@@ -137,7 +137,11 @@ export function addTransaction(i: TxInput): string {
   update((d) => {
     const acc = validateTx(d, i);
     if (i.recurringId && i.occurrenceDate && d.finance.transactions.some((t) => !t.deleted && t.recurringId === i.recurringId && t.occurrenceDate === i.occurrenceDate)) fail('Esta ocorrência já foi confirmada.');
-    if (i.debtInstallment && d.finance.transactions.some((t) => !t.deleted && t.debtInstallment?.debtAccountId === i.debtInstallment!.debtAccountId && t.debtInstallment.number === i.debtInstallment!.number)) fail('Esta parcela já foi paga.');
+    if (i.debtInstallment) {
+      const acc = d.finance.accounts.find((a) => a.id === i.debtInstallment!.debtAccountId);
+      const inst = acc ? debtInstallments(d.finance, acc).find((x) => x.number === i.debtInstallment!.number) : undefined;
+      if (inst?.paid) fail('Esta parcela já foi paga.');
+    }
     const now = Date.now();
     const tx: Transaction = {
       id, kind: i.kind, date: i.date, amount: i.amount, accountId: i.accountId,
@@ -202,7 +206,11 @@ export function restoreTransaction(id: string) {
   update((d) => {
     const t = d.finance.transactions.find((x) => x.id === id) ?? fail('Lançamento não encontrado');
     if (t.recurringId && d.finance.transactions.some((x) => x.id !== id && !x.deleted && x.recurringId === t.recurringId && x.occurrenceDate === t.occurrenceDate)) fail('Já existe outro lançamento para esta ocorrência.');
-    if (t.debtInstallment && d.finance.transactions.some((x) => x.id !== id && !x.deleted && x.debtInstallment?.debtAccountId === t.debtInstallment!.debtAccountId && x.debtInstallment.number === t.debtInstallment!.number)) fail('Esta parcela já foi paga em outro lançamento.');
+    if (t.debtInstallment) {
+      const acc = d.finance.accounts.find((a) => a.id === t.debtInstallment!.debtAccountId);
+      const inst = acc ? debtInstallments(d.finance, acc).find((x) => x.number === t.debtInstallment!.number) : undefined;
+      if (inst?.paid) fail('Esta parcela já foi paga em outro lançamento.');
+    }
     const { history, ...before } = t;
     t.deleted = false;
     t.deletedAt = undefined;

@@ -5,14 +5,15 @@ import { activeEvents } from '../game/meta';
 import * as A from '../state/actions';
 import type { SaveData } from '../state/types';
 import { sfx } from '../audio/sfx';
-import { act, Coins, Drawer, Icon, Progress } from './common';
+import { act, Coins, Drawer, Icon, Progress, useToday } from './common';
 import { WishProgress } from './Shop';
 import { computeProgress } from '../game/progress';
 
 const PERIOD: Record<string, string> = { historia: 'História', evento: 'Evento especial', diaria: 'Diárias', semanal: 'Semanais' };
 
 export function MissionsPanel({ save, onClose }: { save: SaveData; onClose: () => void }) {
-  const list = useMemo(() => currentMissions(save), [save]);
+  const today = useToday();
+  const list = useMemo(() => currentMissions(save, today), [save, today]);
   const events = activeEvents();
   const groups = ['historia', 'evento', 'diaria', 'semanal'] as const;
   return (

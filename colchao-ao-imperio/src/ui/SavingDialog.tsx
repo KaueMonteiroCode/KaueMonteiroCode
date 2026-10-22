@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { formatBRL, type Cents } from '../core/money';
-import { todayISO } from '../core/dates';
+import { addDays, todayISO } from '../core/dates';
 import { balancesAt } from '../finance/ledger';
 import { savingsCoins } from '../game/rewards';
 import { computeProgress } from '../game/progress';
@@ -19,6 +19,11 @@ export function SavingDialog({ save, onClose }: { save: SaveData; onClose: () =>
   const [from, setFrom] = useState<string>(assets.find((a) => a.id !== (reserve?.id ?? ''))?.id ?? '');
   const [desc, setDesc] = useState('');
   const [date, setDate] = useState(todayISO());
+  const [notTracked, setNotTracked] = useState(false);
+  // risco de contar duas vezes: já há receitas recentes ou contas com saldo registradas
+  const recentIncome = save.finance.transactions.some((t) => !t.deleted && t.kind === 'income' && !t.saving && t.date >= addDays(todayISO(), -45));
+  const hasMoney = assets.some((a) => (balancesAt(save.finance).get(a.id) ?? 0) > 0);
+  const risk = mode === 'new-money' && (recentIncome || hasMoney);
   const bal = useMemo(() => balancesAt(save.finance), [save]);
   const prog = computeProgress(save);
 
@@ -70,11 +75,17 @@ export function SavingDialog({ save, onClose }: { save: SaveData; onClose: () =>
         <div><label>Data</label><input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} /></div>
         <div><label>Descrição (opcional)</label><input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex.: troco do mercado" /></div>
       </div>
+      {risk && (
+        <div className="hint warn" style={{ marginTop: 10 }}>
+          Você já tem {recentIncome ? 'receitas registradas' : 'contas com saldo'} no app. Se este dinheiro saiu de uma delas (por exemplo, parte do salário que você já lançou), use <button type="button" className="btn sm" onClick={() => setMode('move')}>Movi entre contas</button> para não contar o mesmo dinheiro duas vezes.
+          <label className="row" style={{ color: 'var(--ink)', marginTop: 6 }}><input id="sv-nt" type="checkbox" checked={notTracked} onChange={(e) => setNotTracked(e.target.checked)} style={{ width: 'auto' }} /> Confirmo: este dinheiro não está registrado em nenhuma conta do app.</label>
+        </div>
+      )}
       <div className="row between" style={{ marginTop: 14 }}>
         <div className="small">
           {mode === 'new-money' && amount ? (preview > 0 ? <>Previsão: <Coins n={preview} className="gold" /> + conquistas</> : <span className="muted">Sem moedas novas: você ainda está recuperando um pico anterior.</span>) : null}
         </div>
-        <button className="btn primary" disabled={!amount || (mode === 'move' && (!from || from === acc))} onClick={submit}>Registrar</button>
+        <button className="btn primary" disabled={!amount || (mode === 'move' && (!from || from === acc)) || (risk && !notTracked)} onClick={submit}>Registrar</button>
       </div>
     </Modal>
   );

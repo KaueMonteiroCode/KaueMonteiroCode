@@ -445,7 +445,8 @@ function DebtsView({ save }: { save: SaveData }) {
                   {nextOpen.map((i) => (
                     <div key={i.number} className="row small">
                       <span className="grow">Parcela {i.number} · vence {formatDateBR(i.dueDate)} {i.dueDate < todayISO() && <span className="neg">(atrasada)</span>}</span>
-                      <button className="btn sm primary" onClick={() => setPay({ acc: d, n: i.number, amount: i.amount, due: i.dueDate })}>{i.dueDate > todayISO() ? 'Antecipar' : 'Pagar'}</button>
+                      {i.paidAmount > 0 && <span className="tiny muted">pago {formatBRL(i.paidAmount)} · falta {formatBRL(i.remaining)}</span>}
+                      <button className="btn sm primary" onClick={() => setPay({ acc: d, n: i.number, amount: i.remaining, due: i.dueDate })}>{i.dueDate > todayISO() ? 'Antecipar' : 'Pagar'}</button>
                     </div>
                   ))}
                 </div>
@@ -462,7 +463,7 @@ function DebtsView({ save }: { save: SaveData }) {
       {!debts.length && <div className="small muted">Nenhuma dívida cadastrada. Que maravilha (ou cadastre para acompanhar).</div>}
       <div className="hint" style={{ marginTop: 10 }}>Pagar dívida reduz ativos e passivos juntos: o patrimônio não muda, mas você ganha moedas por reduzir dívidas que já existiam. Empréstimos novos não contam como enriquecimento.</div>
       {form && <AccountForm save={save} account={form.account} presetType="debt" onClose={() => setForm(null)} />}
-      {pay && <PayModal save={save} title={`Pagar parcela ${pay.n} · ${pay.acc.name}`} amount={pay.amount} note={pay.due > todayISO() ? 'Pagamento antes do vencimento conta como parcela antecipada.' : undefined} onClose={() => setPay(null)} onPay={(from, amt, date) => { A.payDebtInstallment(pay.acc.id, pay.n, from, date, amt); toast('Parcela paga!', { kind: 'ok', icon: 'check' }); }} />}
+      {pay && <PayModal save={save} title={`Pagar parcela ${pay.n} · ${pay.acc.name}`} amount={pay.amount} note={`${pay.due > todayISO() ? 'Pagamento antes do vencimento conta como parcela antecipada. ' : ''}Pagando menos que o valor, a parcela fica parcial até completar.`} onClose={() => setPay(null)} onPay={(from, amt, date) => { A.payDebtInstallment(pay.acc.id, pay.n, from, date, amt); toast(amt >= pay.amount ? 'Parcela paga!' : 'Pagamento parcial registrado', { kind: 'ok', icon: 'check' }); }} />}
       {extra && <PayModal save={save} title={`Pagamento avulso · ${extra.name}`} amount={Math.max(0, -(bal.get(extra.id) ?? 0))} onClose={() => setExtra(null)} onPay={(from, amt, date) => A.addTransaction({ kind: 'transfer', amount: amt, accountId: from, toAccountId: extra.id, date, description: `Pagamento ${extra.name}` })} />}
       {interest && <TxForm save={save} preset={{ kind: 'expense', accountId: interest.id, categoryId: 'cat-juros', description: `Juros ${interest.name}` }} onClose={() => setInterest(null)} />}
     </>

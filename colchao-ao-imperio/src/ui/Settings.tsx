@@ -1,16 +1,13 @@
 import { useRef, useState } from 'react';
 import { todayISO } from '../core/dates';
+import { saveFile } from '../core/download';
 import * as A from '../state/actions';
-import { eraseEverything, flush, getState, replaceState } from '../state/store';
+import { eraseEverything, flush, getState, replaceState, undoRestore } from '../state/store';
 import type { SaveData } from '../state/types';
 import { act, Confirm, Drawer, errToast, ExportBox, Modal, toast } from './common';
 
 export function downloadFile(name: string, content: string, type: string) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  void saveFile(name, content, type);
 }
 
 export function SettingsPanel({ save, onClose, onExit }: { save: SaveData; onClose: () => void; onExit: () => void }) {
@@ -73,7 +70,12 @@ export function SettingsPanel({ save, onClose, onExit }: { save: SaveData; onClo
           </div>
         </Modal>
       )}
-      {pending != null && <Confirm title="Restaurar backup?" text="Isso SUBSTITUI todos os dados atuais pelos do arquivo. Recomendo baixar um backup do estado atual antes." yes="Substituir" danger onClose={() => setPending(null)} onYes={() => { try { replaceState(pending); toast('Backup restaurado!', { kind: 'ok' }); } catch (err) { errToast(err); } }} />}
+      {pending != null && <Confirm title="Restaurar backup?" text="Isso SUBSTITUI todos os dados atuais pelos do arquivo. Recomendo baixar um backup do estado atual antes." yes="Substituir" danger onClose={() => setPending(null)} onYes={async () => {
+        try {
+          const repairs = await replaceState(pending);
+          toast('Backup restaurado!', { kind: 'ok', ms: 8000, sub: repairs.length ? `Reparos: ${repairs.join('; ')}` : undefined, action: { label: 'Desfazer', run: () => { void undoRestore().then((ok) => toast(ok ? 'Restauração desfeita' : 'Nada para desfazer')); } } });
+        } catch (err) { errToast(err); }
+      }} />}
       {wipe === 1 && <Confirm title="Apagar tudo?" text="Lançamentos, contas, móveis e progresso serão apagados deste navegador. Não há como desfazer sem um backup." yes="Continuar" danger onClose={() => setWipe(0)} onYes={() => setTimeout(() => setWipe(2), 50)} />}
       {wipe === 2 && <Confirm title="Tem certeza absoluta?" text="Última confirmação. Tudo será apagado agora." yes="Apagar definitivamente" danger onClose={() => setWipe(0)} onYes={async () => { await eraseEverything(); onExit(); }} />}
     </Drawer>

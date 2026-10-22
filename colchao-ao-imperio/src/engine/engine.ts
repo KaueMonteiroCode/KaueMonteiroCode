@@ -433,6 +433,7 @@ export class GameEngine {
   }
 
   private lastInput = performance.now();
+  noteInput() { this.lastInput = performance.now(); }
   private nextIdle = 0;
   /** Vida própria: com o jogador parado por um tempo, o personagem faz algo sozinho. */
   private idleLife(now: number) {

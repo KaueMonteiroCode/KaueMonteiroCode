@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { loadSave, saveData, saveMirrorSync, wipeAll } from '../core/db';
+import { idbGet, idbSet, loadSave, saveData, saveMirrorSync, wipeAll } from '../core/db';
 import { newSave, normalizeSave } from './defaults';
 import type { SaveData } from './types';
 
@@ -11,6 +11,8 @@ let state: SaveData | null = null;
 const listeners = new Set<() => void>();
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSaveOk = true;
+let bootError = false;
+export const hadBootError = () => bootError;
 
 export function getState(): SaveData {
   if (!state) throw new Error('Save não carregado');
@@ -60,7 +62,7 @@ export function update(fn: (draft: SaveData) => void) {
 export async function boot(): Promise<SaveData | null> {
   const loaded = await loadSave<SaveData>();
   if (loaded) {
-    try { state = normalizeSave(loaded); } catch { state = null; }
+    try { state = normalizeSave(loaded); } catch { state = null; bootError = true; }
   }
   if (typeof window !== 'undefined') {
     const sync = () => { if (state) { state.savedAt = Date.now(); saveMirrorSync(state); } };
@@ -83,10 +85,23 @@ export async function eraseEverything() {
   emit();
 }
 
-export function replaceState(raw: unknown) {
-  const s = normalizeSave(raw);
+/** Restaura um backup. Guarda o estado anterior para poder desfazer. Retorna os reparos feitos. */
+export async function replaceState(raw: unknown): Promise<string[]> {
+  const report = { repairs: [] as string[] };
+  const s = normalizeSave(raw, report);
+  if (state) await idbSet('save-before-restore', state);
   setState(s);
-  void flush();
+  await flush();
+  return report.repairs;
+}
+
+/** Volta ao estado de antes da última restauração (se houver). */
+export async function undoRestore(): Promise<boolean> {
+  const prev = await idbGet<SaveData>('save-before-restore');
+  if (!prev) return false;
+  setState(normalizeSave(prev));
+  await flush();
+  return true;
 }
 
 export function useSave<T>(sel: (s: SaveData) => T): T {

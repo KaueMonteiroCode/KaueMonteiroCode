@@ -2,7 +2,7 @@ import { todayISO } from '../core/dates';
 import type { SaveData } from '../state/types';
 import { ACHIEVEMENTS, type AchDef } from './achievements';
 import { TITLES } from './meta';
-import { computeMetrics, debtCoins, levelFromXp, savingsCoins, XP_PER_ACTIVE_DAY, type Metrics } from './rewards';
+import { computeMetrics, COINS_PER_ACTIVE_DAY, debtCoins, levelFromXp, savingsCoins, XP_PER_ACTIVE_DAY, type Metrics } from './rewards';
 
 export interface AchState { def: AchDef; cur: number; target: number; unlocked: boolean; coins: number }
 
@@ -20,17 +20,18 @@ export interface Progress {
   breakdown: { label: string; coins: number; xp: number }[];
 }
 
-const cache = new WeakMap<SaveData, Progress>();
+// cache por save E por dia (missões e métricas mudam na virada do dia)
+const cache = new WeakMap<SaveData, Map<string, Progress>>();
 
 export function computeProgress(save: SaveData, today = todayISO()): Progress {
-  const hit = cache.get(save);
+  const hit = cache.get(save)?.get(today);
   if (hit) return hit;
   const m = computeMetrics(save, today);
   const owned = new Set(save.game.inventory.map((i) => i.defId));
 
   const sCoins = savingsCoins(m.peakGain);
   const dCoins = debtCoins(m.debtReduction);
-  const actCoins = m.activityDays * 5;
+  const actCoins = m.activityDays * COINS_PER_ACTIVE_DAY;
   const claims = Object.values(save.game.claims);
   const claimCoins = claims.reduce((a, c) => a + c.coins, 0);
   const claimXp = claims.reduce((a, c) => a + c.xp, 0);
@@ -87,6 +88,7 @@ export function computeProgress(save: SaveData, today = todayISO()): Progress {
       { label: 'Missões e presentes', coins: claimCoins, xp: claimXp },
     ],
   };
-  cache.set(save, res);
+  if (!cache.has(save)) cache.set(save, new Map());
+  cache.get(save)!.set(today, res);
   return res;
 }

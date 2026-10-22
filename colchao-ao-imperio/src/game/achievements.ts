@@ -47,7 +47,8 @@ const tierFor = (i: number, n: number) => Math.min(6, 1 + Math.floor((i / Math.m
 function chain(group: AchGroup, values: number[], mk: (v: number, i: number) => Omit<AchDef, 'group' | 'step' | 'tier' | 'coins' | 'xp'> & { coins?: number; xp?: number }, coinBase: (v: number, i: number) => number) {
   values.forEach((v, i) => {
     const d = mk(v, i);
-    const coins = d.coins ?? coinBase(v, i);
+    // conquistas valem metade do que valiam (evita inflação de moedas no começo)
+    const coins = Math.max(2, Math.round((d.coins ?? coinBase(v, i)) * 0.5));
     A.push({ ...d, group, step: i, tier: tierFor(i, values.length), coins, xp: d.xp ?? Math.round(coins * 1.5) });
   });
 }
@@ -60,7 +61,7 @@ chain('poupanca', SAVE_STEPS, (v) => ({
   id: `save-${v}`, name: v === 1000 ? 'Primeiro R$ 1.000 guardado' : `Primeiros ${brl(v)} economizados`,
   desc: `Aumente seu patrimônio em ${brl(v)} desde o início do jogo.`, money: true,
   progress: ({ m }) => [m.peakGain, v * 100],
-}), (v) => Math.round(Math.min(4000, 10 + Math.sqrt(v) * 4)));
+}), (v) => Math.round(Math.min(2400, 6 + Math.sqrt(v) * 2.4)));
 
 /* ---- Patrimônio líquido ---- */
 const NW_STEPS = [0, 100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2000000, 5000000];
@@ -69,13 +70,13 @@ chain('patrimonio', NW_STEPS, (v) => ({
   desc: v === 0 ? 'Patrimônio líquido deixou de ser negativo.' : `Alcance ${brl(v)} de patrimônio líquido (ativos - dívidas).`, money: true,
   progress: ({ m }) => (v === 0 ? [m.peakNetWorth >= 0 && m.baselineNetWorth < 0 ? 1 : 0, 1] : [m.peakNetWorth, v * 100]),
   coinsFor: ({ m }) => (m.baselineNetWorth >= v * 100 ? 0 : -1),
-}), (v) => Math.round(Math.min(3000, 30 + Math.sqrt(v) * 3)));
+}), () => 10); // patrimônio: medalha + XP; as moedas já vêm da poupança
 
 /* ---- Dívidas ---- */
 chain('dividas', [50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000], (v) => ({
   id: `debt-red-${v}`, name: `${brl(v)} de dívida reduzida`, desc: `Diminua em ${brl(v)} o valor das dívidas que você já tinha.`, money: true,
   progress: ({ m }) => [m.debtReduction, v * 100],
-}), (v) => Math.round(Math.min(3000, 20 + Math.sqrt(v) * 5)));
+}), (v) => Math.round(Math.min(2400, 6 + Math.sqrt(v) * 2.4)));
 chain('dividas', [1, 2, 3, 5, 10], (v) => ({
   id: `debt-off-${v}`, name: v === 1 ? 'Primeira dívida quitada' : `${v} dívidas quitadas`, desc: 'Leve uma dívida que já existia a zero.',
   progress: ({ m }) => [m.debtsPaidOff, v],
@@ -109,7 +110,7 @@ chain('organizacao', [1, 10, 25, 50, 100, 250, 500, 1000, 2500], (v) => ({
 chain('organizacao', [1, 2, 3, 5], (v) => ({ id: `acc-${v}`, name: v === 1 ? 'Primeira conta cadastrada' : `${v} contas cadastradas`, desc: 'Cadastre suas contas (sem dados bancários sensíveis).', progress: ({ m }) => [m.accountsCount, v] }), (v) => 10 + v * 5);
 chain('organizacao', [1, 3, 5], (v) => ({ id: `cat-${v}`, name: `${v} categoria(s) personalizada(s)`, desc: 'Crie categorias do seu jeito.', progress: ({ m }) => [m.customCategories, v] }), (v) => 10 + v * 3);
 chain('organizacao', [1, 3, 5, 10], (v) => ({ id: `rec-${v}`, name: v === 1 ? 'Primeira conta recorrente' : `${v} recorrências cadastradas`, desc: 'Cadastre assinaturas e contas fixas.', progress: ({ m }) => [m.recurringCount, v] }), (v) => 10 + v * 4);
-A.push({ id: 'backup-1', group: 'organizacao', step: 10, tier: 2, coins: 30, xp: 40, name: 'Precavido', desc: 'Faça um backup dos seus dados.', progress: ({ m }) => [m.visits['backup'] ? 1 : 0, 1] });
+A.push({ id: 'backup-1', group: 'organizacao', step: 10, tier: 2, coins: 15, xp: 40, name: 'Precavido', desc: 'Faça um backup dos seus dados.', progress: ({ m }) => [m.visits['backup'] ? 1 : 0, 1] });
 A.push({ id: 'calendar-1', group: 'organizacao', step: 11, tier: 1, coins: 10, xp: 15, name: 'De olho no calendário', desc: 'Abra o calendário de pagamentos.', progress: ({ m }) => [m.visits['calendario'] ? 1 : 0, 1] });
 A.push({ id: 'stats-1', group: 'organizacao', step: 12, tier: 1, coins: 10, xp: 15, name: 'Analista', desc: 'Abra as estatísticas.', progress: ({ m }) => [m.visits['estatisticas'] ? 1 : 0, 1] });
 A.push({ id: 'csv-1', group: 'organizacao', step: 13, tier: 2, coins: 20, xp: 25, name: 'Planilheiro', desc: 'Exporte seus lançamentos em CSV.', progress: ({ m }) => [m.visits['csv-export'] ? 1 : 0, 1] });
@@ -129,8 +130,8 @@ chain('metas', [1, 100, 500, 1000, 5000, 10000, 20000], (v) => ({
   id: `reserve-${v}`, name: v === 1 ? 'Reserva de emergência iniciada' : `Reserva de emergência de ${brl(v)}`,
   desc: v === 1 ? 'Coloque qualquer valor numa conta do tipo Reserva.' : `Acumule ${brl(v)} em contas do tipo Reserva.`, money: v > 1,
   progress: ({ m }) => [m.reservePeak, v === 1 ? 1 : v * 100],
-}), (v) => (v === 1 ? 40 : Math.round(30 + Math.sqrt(v) * 5)));
-chain('metas', [100, 1000, 10000, 50000], (v) => ({ id: `guard-${v}`, name: `${brl(v)} guardados`, desc: `Tenha ${brl(v)} em poupança, reserva ou investimentos.`, money: true, progress: ({ m }) => [m.guardedPeak, v * 100] }), (v) => Math.round(20 + Math.sqrt(v) * 3));
+}), (v) => (v === 1 ? 30 : 16)); // reserva: medalha; o dinheiro já rendeu moedas na poupança
+chain('metas', [100, 1000, 10000, 50000], (v) => ({ id: `guard-${v}`, name: `${brl(v)} guardados`, desc: `Tenha ${brl(v)} em poupança, reserva ou investimentos.`, money: true, progress: ({ m }) => [m.guardedPeak, v * 100] }), () => 16);
 
 /* ---- Decoração ---- */
 chain('decoracao', [1, 5, 10, 25, 50, 100, 200, 300, 500], (v) => ({ id: `buy-${v}`, name: v === 1 ? 'Primeira compra na loja' : `${v} compras na loja`, desc: 'Compre móveis com moedas virtuais (nunca com dinheiro real).', progress: ({ m }) => [m.itemsBought, v] }), (v) => 5 + Math.round(Math.sqrt(v) * 4));
@@ -144,7 +145,7 @@ chain('imoveis', [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (v) => ({ id: `prop-${v}`
 chain('imoveis', [1, 3, 5, 10], (v) => ({ id: `exp-${v}`, name: `${v} expansão(ões)`, desc: 'Expanda seus ambientes.', progress: ({ m }) => [m.expansions, v] }), (v) => 20 + v * 10);
 
 /* ---- Nível (só moedas, para não ser circular) ---- */
-chain('nivel', [2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100], (v) => ({ id: `lvl-${v}`, name: `Nível ${v}`, desc: `Alcance o nível ${v}.`, noXp: true, xp: 0, progress: ({ level }) => [level, v] }), (v) => 10 + v * 8);
+chain('nivel', [2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100], (v) => ({ id: `lvl-${v}`, name: `Nível ${v}`, desc: `Alcance o nível ${v}.`, noXp: true, xp: 0, progress: ({ level }) => [level, v] }), (v) => 10 + v * 4);
 
 /* ---- Coleções ---- */
 COLLECTIONS.forEach((c, i) => A.push({

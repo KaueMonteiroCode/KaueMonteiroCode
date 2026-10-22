@@ -4,7 +4,7 @@ import { newSave } from '../src/state/defaults';
 import { getState, setState } from '../src/state/store';
 import * as A from '../src/state/actions';
 import { computeProgress } from '../src/game/progress';
-import { activeTx, calendarEvents, netWorthEffect, projection, totals, cardInvoiceStatus } from '../src/finance/ledger';
+import { activeTx, calendarEvents, debtInstallments, netWorthEffect, projection, totals, cardInvoiceStatus } from '../src/finance/ledger';
 import { SHOP_ITEMS, getItem } from '../src/game/catalog';
 import { checkPlacement, findFreeSpot, roomInfo } from '../src/game/room';
 import { currentMissions } from '../src/game/missions';
@@ -61,9 +61,11 @@ describe('fuzz: regras financeiras nunca quebram', () => {
         for (const c of st.finance.accounts.filter((a) => a.type === 'credit_card')) {
           for (const v of cardInvoiceStatus(st.finance, c).values()) expect(v.remaining).toBeGreaterThanOrEqual(0);
         }
-        // parcelas de dívida nunca duplicadas
-        const paid = st.finance.transactions.filter((t) => !t.deleted && t.debtInstallment).map((t) => t.debtInstallment!.number);
-        expect(new Set(paid).size).toBe(paid.length);
+        // contagens nunca passam do possível
+        const m = computeProgress(st).metrics;
+        expect(m.debtsPaidOff).toBeLessThanOrEqual(st.finance.accounts.filter((a) => a.initialBalance < 0).length);
+        expect(m.installmentsPaid).toBeLessThanOrEqual(st.finance.accounts.reduce((x, a) => x + debtInstallments(st.finance, a).length, 0));
+        expect(m.debtReduction).toBeLessThanOrEqual(st.finance.accounts.reduce((x, a) => x + Math.max(0, -a.initialBalance), 0));
       }
       // apagar tudo zera as moedas de economia: editar/recriar não deixa "resto"
       for (const t of getState().finance.transactions) if (!t.deleted) A.deleteTransaction(t.id);

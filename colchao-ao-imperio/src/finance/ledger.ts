@@ -130,6 +130,11 @@ export function occurrences(rule: RecurringRule, from: ISODate, to: ISODate): IS
   if (end < start) return out;
   if (rule.frequency === 'weekly') {
     let d = start;
+    // dia da semana (1 = segunda … 7 = domingo); valores antigos fora disso usam a data inicial
+    if (rule.day >= 1 && rule.day <= 7) {
+      const dow = ((fromISO(start).getDay() + 6) % 7) + 1;
+      d = addDays(start, (rule.day - dow + 7) % 7);
+    }
     while (d <= end) {
       if (d >= from) out.push(d);
       d = addDays(d, 7);
@@ -158,7 +163,10 @@ export interface DebtInstallment {
   number: number;
   dueDate: ISODate;
   amount: Cents;
+  paidAmount: Cents;
+  remaining: Cents;
   paid: boolean;
+  paidOn?: ISODate;
   paidTx?: Transaction;
 }
 
@@ -168,10 +176,13 @@ export function debtInstallments(fin: FinanceState, acc: Account): DebtInstallme
   const out: DebtInstallment[] = [];
   for (let i = 1; i <= p.installmentsTotal; i++) {
     const due = addMonths(p.firstDueDate, i - 1);
-    const paidTx = fin.transactions.find(
+    const pays = fin.transactions.filter(
       (t) => !t.deleted && t.status === 'confirmed' && t.debtInstallment?.debtAccountId === acc.id && t.debtInstallment.number === i,
-    );
-    out.push({ debtAccountId: acc.id, number: i, dueDate: due, amount: p.installmentAmount, paid: !!paidTx, paidTx });
+    ).sort(sortTx);
+    // parcela só fica paga quando a soma dos pagamentos cobre o valor dela
+    let sum = 0, paidOn: ISODate | undefined;
+    for (const t of pays) { sum += t.amount; if (!paidOn && sum >= p.installmentAmount) paidOn = t.date; }
+    out.push({ debtAccountId: acc.id, number: i, dueDate: due, amount: p.installmentAmount, paidAmount: sum, remaining: Math.max(0, p.installmentAmount - sum), paid: sum >= p.installmentAmount, paidOn, paidTx: pays[0] });
   }
   return out;
 }
@@ -252,8 +263,8 @@ export function calendarEvents(fin: FinanceState, from: ISODate, to: ISODate): C
       for (const inst of debtInstallments(fin, a)) {
         if (inst.dueDate < from || inst.dueDate > to) continue;
         ev.push({
-          date: inst.dueDate, kind: 'debt', label: `${a.name} — parcela ${inst.number}/${a.debt.installmentsTotal}`,
-          amount: -inst.amount, done: inst.paid, ref: `${a.id}#${inst.number}`, debt: inst,
+          date: inst.dueDate, kind: 'debt', label: `${a.name} — parcela ${inst.number}/${a.debt.installmentsTotal}${!inst.paid && inst.paidAmount > 0 ? ' (parcial)' : ''}`,
+          amount: -(inst.paid ? inst.amount : inst.remaining), done: inst.paid, ref: `${a.id}#${inst.number}`, debt: inst,
         });
       }
     }
@@ -289,6 +300,7 @@ export function projection(fin: FinanceState, monthsAhead = 6): ProjectionPoint[
   let liquid = totals(fin, today).liquid;
   const out: ProjectionPoint[] = [];
   const start = monthKey(today);
+  const cardDeferred = new Map<string, Cents>();
   for (let i = 0; i <= monthsAhead; i++) {
     const mk = addMonthKey(start, i);
     const from = i === 0 ? addDays(today, 1) : `${mk}-01`;
@@ -297,9 +309,19 @@ export function projection(fin: FinanceState, monthsAhead = 6): ProjectionPoint[
     if (from <= to) {
       for (const e of calendarEvents(fin, from, to)) {
         if (e.done) continue;
+        // recorrência cobrada no cartão: não sai do saldo agora, entra na fatura (somada abaixo)
+        const rule = e.ruleId ? fin.recurring.find((r) => r.id === e.ruleId) : undefined;
+        const card = rule ? fin.accounts.find((a) => a.id === rule.accountId && a.type === 'credit_card') : undefined;
+        if (card && e.amount < 0) {
+          const im = invoiceMonthFor(card, e.date);
+          cardDeferred.set(im, (cardDeferred.get(im) ?? 0) - e.amount);
+          continue;
+        }
         if (e.amount >= 0) inc += e.amount; else exp += -e.amount;
       }
     }
+    exp += cardDeferred.get(mk) ?? 0;
+    cardDeferred.delete(mk);
     liquid += inc - exp;
     out.push({ month: mk, liquid, income: inc, expense: exp });
   }

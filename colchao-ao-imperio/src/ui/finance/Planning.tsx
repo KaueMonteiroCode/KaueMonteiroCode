@@ -45,8 +45,13 @@ function RecurringForm({ save, rule, onClose }: { save: SaveData; rule?: Recurri
       <div className="grid2">
         <div><label>Valor</label><MoneyInput value={amount} onChange={setAmount} /></div>
         <div><label>Conta</label><select value={accountId} onChange={(e) => setAcc(e.target.value)}>{accs.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
-        <div><label>Frequência</label><select value={frequency} onChange={(e) => setFreq(e.target.value as RecurringRule['frequency'])}><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="yearly">Anual</option></select></div>
-        <div><label>{frequency === 'weekly' ? 'Dia (ignorado: usa a data inicial)' : 'Dia do vencimento'}</label><input type="number" min={1} max={31} value={day} onChange={(e) => setDay(Number(e.target.value))} /></div>
+        <div><label>Frequência</label><select value={frequency} onChange={(e) => { const f = e.target.value as RecurringRule['frequency']; setFreq(f); if (f === 'weekly' && (day < 1 || day > 7)) setDay(1); }}><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="yearly">Anual</option></select></div>
+        {frequency === 'weekly' ? (
+          <div><label>Dia da semana</label>
+            <select value={day >= 1 && day <= 7 ? day : 1} onChange={(e) => setDay(Number(e.target.value))}>
+              {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'].map((n, i) => <option key={n} value={i + 1}>{n}</option>)}
+            </select></div>
+        ) : <div><label>Dia do vencimento</label><input type="number" min={1} max={31} value={day} onChange={(e) => setDay(Number(e.target.value))} /></div>}
         <div><label>Começa em</label><input type="date" value={startDate} onChange={(e) => setStart(e.target.value)} /></div>
         <div><label>Termina em (opcional)</label><input type="date" value={endDate} onChange={(e) => setEnd(e.target.value)} /></div>
       </div>
@@ -75,7 +80,7 @@ function RecurringView({ save }: { save: SaveData }) {
       <div className="list" style={{ marginTop: 8 }}>
         {rules.map((r) => (
           <div key={r.id} className="li" style={{ opacity: r.active ? 1 : 0.5 }}>
-            <div className="grow"><b>{r.name}</b> {r.isSubscription && <span className="chip">assinatura</span>}<div className="tiny muted">{r.frequency === 'monthly' ? `todo dia ${r.day}` : r.frequency === 'weekly' ? 'semanal' : `anual, dia ${r.day}`} · desde {formatDateBR(r.startDate)}{r.endDate ? ` até ${formatDateBR(r.endDate)}` : ''}</div></div>
+            <div className="grow"><b>{r.name}</b> {r.isSubscription && <span className="chip">assinatura</span>}<div className="tiny muted">{r.frequency === 'monthly' ? `todo dia ${r.day}` : r.frequency === 'weekly' ? (r.day >= 1 && r.day <= 7 ? `toda ${['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'][r.day - 1]}` : 'semanal') : `anual, dia ${r.day}`} · desde {formatDateBR(r.startDate)}{r.endDate ? ` até ${formatDateBR(r.endDate)}` : ''}</div></div>
             <span className={`amount ${r.kind === 'income' ? 'pos' : 'neg'}`}>{formatBRL(r.amount)}</span>
             <button className="btn sm" onClick={() => setForm({ rule: r })}>✎</button>
             <button className="btn sm danger" onClick={() => setDel(r)}>✕</button>

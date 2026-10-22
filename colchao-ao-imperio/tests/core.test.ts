@@ -52,7 +52,7 @@ describe('fluxo financeiro + recompensas', () => {
     A.registerSaving({ amount: 2500, accountId: c, mode: 'new-money' });
     const p = computeProgress(getState());
     expect(p.metrics.peakGain).toBe(2500);
-    expect(p.coins).toBeGreaterThan(before + 49);
+    expect(p.coins).toBeGreaterThan(before + 36);
     const r = A.addAccount({ name: 'Reserva', type: 'reserve', initialAmount: 0 });
     const coinsBefore = computeProgress(getState()).coins;
     const xferBefore = computeProgress(getState()).metrics.peakGain;
@@ -215,8 +215,8 @@ describe('conteúdo', () => {
     }
   });
   it('curva de moedas é generosa no começo', () => {
-    expect(savingsCoins(1000)).toBe(20);
-    expect(savingsCoins(2500)).toBe(50);
-    expect(savingsCoins(100000)).toBe(1100);
+    expect(savingsCoins(1000)).toBe(15);
+    expect(savingsCoins(2500)).toBe(37);
+    expect(savingsCoins(100000)).toBe(870);
   });
 });

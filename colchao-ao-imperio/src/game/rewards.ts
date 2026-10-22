@@ -70,7 +70,8 @@ const r = (c: Cents) => c / 100;
 /** Curva de moedas por R$ economizado: generosa no começo, decrescente depois. */
 export function savingsCoins(gainCents: Cents): number {
   const reais = Math.max(0, r(gainCents));
-  const tiers: [number, number][] = [[100, 2], [1000, 1], [10000, 0.4], [100000, 0.1], [Infinity, 0.03]];
+  // rebalanceado: R$ 25 ≈ 37 moedas; R$ 1.000 ≈ 870; R$ 10.000 ≈ 3.570
+  const tiers: [number, number][] = [[100, 1.5], [1000, 0.8], [10000, 0.3], [100000, 0.08], [Infinity, 0.02]];
   let rest = reais, prev = 0, coins = 0;
   for (const [cap, rate] of tiers) {
     const span = Math.min(rest, cap - prev);
@@ -87,7 +88,7 @@ export function debtCoins(reductionCents: Cents): number {
   return Math.floor(savingsCoins(reductionCents) * 1.25);
 }
 
-export const COINS_PER_ACTIVE_DAY = 5;
+export const COINS_PER_ACTIVE_DAY = 3;
 export const XP_PER_ACTIVE_DAY = 10;
 
 export function computeMetrics(save: SaveData, today = todayISO()): Metrics {
@@ -140,21 +141,52 @@ export function computeMetrics(save: SaveData, today = todayISO()): Metrics {
     reservePeak = Math.max(reservePeak, reserve);
   }
 
-  let debtReduction = 0, debtsPaidOff = 0;
+  /*
+   * Dívidas: olhamos o TOTAL devido (todas as dívidas e cartões juntos). Só conta como redução
+   * quando o total cai abaixo do menor valor já atingido. Assim, pegar um empréstimo novo para
+   * quitar uma dívida antiga (refinanciar) não rende nada: o total continua o mesmo.
+   */
+  let baselineOwed = 0;
+  const preDebts: Cents[] = [];
   for (const a of fin.accounts) {
     if (!isLiability(a.type) || a.openedAt > today) continue;
-    const initialOwed = -a.initialBalance;
-    if (initialOwed <= 0) continue;
-    const mo = Math.max(0, minOwed.get(a.id) ?? initialOwed);
-    debtReduction += Math.max(0, initialOwed - mo);
-    if (mo <= 0) debtsPaidOff++;
+    const o = Math.max(0, -a.initialBalance);
+    baselineOwed += o;
+    if (o > 0) preDebts.push(o);
   }
+  // reprocessa para achar o menor total devido ao longo do tempo
+  const owedNow = new Map<string, Cents>();
+  for (const a of fin.accounts) if (isLiability(a.type)) owedNow.set(a.id, a.openedAt <= today ? Math.max(0, -a.initialBalance) : 0);
+  let totalOwed = baselineOwed, minTotalOwed = baselineOwed;
+  const debtZeroed = new Set<string>();
+  for (const t of txs) {
+    for (const e of txEffects(t)) {
+      const a = accById.get(e.accountId);
+      if (!a || !isLiability(a.type)) continue;
+      const before = owedNow.get(a.id) ?? 0;
+      const raw = (before - e.delta);
+      owedNow.set(a.id, raw);
+      totalOwed += Math.max(0, raw) - Math.max(0, before);
+      if (raw <= 0 && a.initialBalance < 0) debtZeroed.add(a.id);
+    }
+    minTotalOwed = Math.min(minTotalOwed, totalOwed);
+  }
+  const debtReduction = Math.max(0, baselineOwed - minTotalOwed);
+  // dívidas quitadas: só as que a redução real do total consegue explicar
+  let debtsPaidOff = 0;
+  {
+    const zeroed = fin.accounts.filter((a) => debtZeroed.has(a.id)).map((a) => -a.initialBalance).sort((x, y) => x - y);
+    let budget = debtReduction;
+    for (const v of zeroed) { if (v <= budget) { debtsPaidOff++; budget -= v; } }
+  }
+  void minOwed;
 
   let installmentsPaid = 0, installmentsPrepaid = 0;
-  for (const t of txs) {
-    if (t.debtInstallment) {
+  for (const a of fin.accounts) {
+    for (const inst of debtInstallments(fin, a)) {
+      if (!inst.paid) continue;
       installmentsPaid++;
-      if (t.date < t.debtInstallment.dueDate) installmentsPrepaid++;
+      if (inst.paidOn && inst.paidOn < inst.dueDate) installmentsPrepaid++;
     }
   }
 

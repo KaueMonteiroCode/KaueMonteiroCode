@@ -3,6 +3,7 @@ import { DEFAULT_AVATAR } from '../engine/avatar';
 import { PROPERTIES } from '../game/properties';
 import type { Category, OwnedItem, RoomState, SaveData } from './types';
 import { SAVE_VERSION } from './types';
+import { sanitizeInto, type SanitizeReport } from './sanitize';
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-salario', name: 'Salário', kind: 'income', color: '#4ade80', icon: 'money', system: true },
@@ -69,29 +70,11 @@ export function newSave(): SaveData {
   };
 }
 
-/** Migração/sanitização de saves antigos ou importados */
-export function normalizeSave(raw: unknown): SaveData {
-  const base = newSave();
-  const s = raw as Partial<SaveData>;
-  if (!s || typeof s !== 'object' || !s.finance || !s.game || !s.profile) throw new Error('Arquivo de save inválido');
-  const out: SaveData = {
-    ...base,
-    ...s,
-    version: SAVE_VERSION,
-    profile: { ...base.profile, ...s.profile, avatar: { ...base.profile.avatar, ...(s.profile?.avatar ?? {}) } },
-    settings: { ...base.settings, ...(s.settings ?? {}) },
-    finance: { ...base.finance, ...s.finance },
-    game: { ...base.game, ...s.game, rooms: { ...(s.game?.rooms ?? base.game.rooms) } },
-  } as SaveData;
-  for (const k of ['accounts', 'categories', 'transactions', 'recurring', 'goals', 'budgets', 'audit'] as const) {
-    if (!Array.isArray(out.finance[k])) (out.finance as unknown as Record<string, unknown[]>)[k] = [];
-  }
-  for (const t of out.finance.transactions) {
-    if (!Number.isSafeInteger(t.amount)) throw new Error(`Lançamento com valor inválido: ${t.id}`);
-  }
-  if (!Array.isArray(out.game.wishlist)) out.game.wishlist = [];
-  for (const pid of out.game.ownedProperties) if (!out.game.rooms[pid]) out.game.rooms[pid] = roomDefaults(pid);
-  return out;
+/** Migração/sanitização de saves antigos, danificados ou importados. Nunca deixa o jogo travado. */
+export function normalizeSave(raw: unknown, report: SanitizeReport = { repairs: [] }): SaveData {
+  const s = raw as Record<string, unknown>;
+  if (!s || typeof s !== 'object' || Array.isArray(s) || (!s.finance && !s.game && !s.profile)) throw new Error('Este texto não parece um backup do Do Colchão ao Império.');
+  return sanitizeInto(newSave(), s, report);
 }
 
 export { todayISO };
