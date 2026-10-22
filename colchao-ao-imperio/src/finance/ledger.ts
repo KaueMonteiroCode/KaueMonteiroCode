@@ -204,6 +204,24 @@ export function cardInvoices(fin: FinanceState, acc: Account): Map<string, Cents
   return m;
 }
 
+/**
+ * Situação de cada fatura: os pagamentos ao cartão (transferências para ele) quitam primeiro
+ * o saldo que já existia ao cadastrar e depois as faturas mais antigas.
+ */
+export function cardInvoiceStatus(fin: FinanceState, acc: Account): Map<string, { amount: Cents; remaining: Cents; paid: boolean }> {
+  const inv = [...cardInvoices(fin, acc).entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  let pool = 0;
+  for (const t of fin.transactions) if (activeTx(t) && t.kind === 'transfer' && t.toAccountId === acc.id) pool += t.amount;
+  pool -= Math.max(0, -acc.initialBalance); // dívida anterior ao cadastro é paga primeiro
+  const out = new Map<string, { amount: Cents; remaining: Cents; paid: boolean }>();
+  for (const [mk, v] of inv) {
+    const used = Math.max(0, Math.min(v, pool));
+    pool -= used;
+    out.set(mk, { amount: v, remaining: v - used, paid: v - used <= 0 });
+  }
+  return out;
+}
+
 /* ---------- Calendário ---------- */
 
 export interface CalendarEvent {
@@ -240,11 +258,11 @@ export function calendarEvents(fin: FinanceState, from: ISODate, to: ISODate): C
       }
     }
     if (a.type === 'credit_card') {
-      const inv = cardInvoices(fin, a);
-      for (const [mk, v] of inv) {
+      const inv = cardInvoiceStatus(fin, a);
+      for (const [mk, st] of inv) {
         const due = `${mk}-${String(Math.min(a.dueDay ?? 10, daysInMonth(mk))).padStart(2, '0')}`;
         if (due < from || due > to) continue;
-        ev.push({ date: due, kind: 'invoice', label: `Fatura ${a.name}`, amount: -v, done: false, ref: `${a.id}:${mk}` });
+        ev.push({ date: due, kind: 'invoice', label: `Fatura ${a.name}`, amount: -(st.paid ? st.amount : st.remaining), done: st.paid, ref: `${a.id}:${mk}` });
       }
     }
   }

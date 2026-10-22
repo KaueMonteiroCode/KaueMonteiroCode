@@ -139,6 +139,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
 
   const openPanel = (p: PanelId) => {
     sfx.open();
+    setMore(false);
     if (panel === p) { setPanel(null); return; }
     if (mode !== 'play') setMode('play');
     setPanel(p);
@@ -149,7 +150,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
 
   return (
     <div className={`app ${panel ? (['shop', 'finance', 'inventory', 'achievements'].includes(panel) ? 'panel-wide' : 'panel-open') : ''}`}>
-      <div className="canvas-wrap"><canvas ref={canvasRef} aria-label="Ambiente do jogo" /></div>
+      <div className="canvas-wrap" onPointerDown={() => setMore(false)}><canvas ref={canvasRef} aria-label="Ambiente do jogo" /></div>
 
       {/* HUD superior */}
       <div className="hud-top">
@@ -191,7 +192,7 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
             <>
               <div className="small" style={{ alignSelf: 'center', maxWidth: 180 }}><b className="ellipsis" style={{ display: 'block' }}>{selDef.name}</b>{sel.locked && <span className="tiny muted">fixo do imóvel</span>}</div>
               {!sel.locked && <button className="btn sm" onClick={() => startPlacing(sel.uid, 'edit')}><Icon name="hammer" />Mover</button>}
-              {!sel.locked && <button className="btn sm" onClick={() => { const r = selDef.place === 'wall' ? 1 - sel.placed!.rot : (sel.placed!.rot + 1) % 4; act(() => A.placeItem(sel.uid, { ...sel.placed!, rot: r })); sfx.place(); }}><Icon name="rotate" />Girar</button>}
+              {!sel.locked && <button className="btn sm" onClick={() => { const pl = sel.placed!; const r = selDef.place === 'wall' ? 1 - pl.rot : (pl.rot + 1) % 4; act(() => A.placeItem(sel.uid, selDef.place === 'wall' ? { ...pl, rot: r, x: r === 1 ? pl.y : 0, y: r === 1 ? 0 : pl.x } : { ...pl, rot: r })); sfx.place(); }}><Icon name="rotate" />Girar</button>}
               {!sel.locked && <button className="btn sm" onClick={() => { act(() => A.storeItem(sel.uid)); setSelected(null); if (engineRef.current) engineRef.current.selected = null; }}><Icon name="box" />Guardar</button>}
               {!sel.locked && !sel.gift && selDef.price > 0 && <button className="btn sm danger" onClick={() => setConfirmSell(sel.uid)}><Icon name="trash" />Vender</button>}
             </>
@@ -211,10 +212,10 @@ export function Game({ save, onExit }: { save: SaveData; onExit: () => void }) {
 
       {/* dock */}
       <nav className="dock" aria-label="Menu do jogo">
-        <button className="save" onClick={() => { sfx.open(); setSaving(true); }}><Icon name="plus" size={18} />Economizei</button>
+        <button className="save" onClick={() => { sfx.open(); setMore(false); setSaving(true); }}><Icon name="plus" size={18} />Economizei</button>
         <button className={panel === 'finance' ? 'on' : ''} onClick={() => openPanel('finance')}><Icon name="money" size={20} />Finanças</button>
         <button className={panel === 'shop' ? 'on' : ''} onClick={() => openPanel('shop')}><Icon name="shop" size={20} />Loja</button>
-        <button className={mode === 'edit' ? 'on' : ''} onClick={() => { setPanel(null); setMode(mode === 'edit' ? 'play' : 'edit'); }}><Icon name="brush" size={20} />Decorar</button>
+        <button className={mode === 'edit' ? 'on' : ''} onClick={() => { setMore(false); setPanel(null); setMode(mode === 'edit' ? 'play' : 'edit'); }}><Icon name="brush" size={20} />Decorar</button>
         <button className={`sec ${panel === 'inventory' ? 'on' : ''}`} onClick={() => openPanel('inventory')}><Icon name="box" size={20} />Inventário</button>
         <button className={panel === 'missions' ? 'on' : ''} onClick={() => openPanel('missions')}><Icon name="target" size={20} />Missões{missionsReady > 0 && <span className="badge">{missionsReady}</span>}</button>
         <button className={`sec ${panel === 'achievements' ? 'on' : ''}`} onClick={() => openPanel('achievements')}><Icon name="trophy" size={20} />Conquistas</button>

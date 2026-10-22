@@ -30,7 +30,7 @@ export function TxForm({ save, tx, preset, onClose }: { save: SaveData; tx?: Tra
     const input: A.TxInput = {
       kind, amount: kind === 'adjustment' ? Math.abs(amount) * adjSign : amount, date, accountId,
       toAccountId: kind === 'transfer' ? toAccountId : undefined, categoryId: kind === 'transfer' || kind === 'adjustment' ? undefined : categoryId || undefined,
-      description, installments: kind === 'expense' && acc?.type === 'credit_card' ? installments : undefined, saving: kind === 'income' ? saving : undefined,
+      description, installments: kind === 'expense' && acc?.type === 'credit_card' ? installments : 1, saving: kind === 'income' ? saving : undefined,
     };
     const ok = act(() => { if (tx) A.editTransaction(tx.id, input); else A.addTransaction(input); return true; }, tx ? 'Lançamento corrigido' : 'Lançamento registrado');
     if (ok) onClose();

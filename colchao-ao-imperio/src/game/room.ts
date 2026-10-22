@@ -70,6 +70,9 @@ export function checkPlacement(room: RoomInfo, def: ItemDef, p: Placement, ignor
     for (const [x, y] of tiles) {
       const f = floorAt(x, y);
       if (f) return { ok: false, reason: `Ocupado por ${f.def.name}`, z: 0 };
+      // objetos pequenos apoiados no chão também ocupam o tile
+      const small = others.find((o) => o.def.place === 'top' && o.z === 0 && x >= o.p.x && x < o.p.x + o.w && y >= o.p.y && y < o.p.y + o.d);
+      if (small) return { ok: false, reason: `Ocupado por ${small.def.name}`, z: 0 };
     }
     return { ok: true, z: 0 };
   }

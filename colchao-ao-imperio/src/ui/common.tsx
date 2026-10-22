@@ -86,12 +86,19 @@ export function Toasts() {
 
 /* ---------------- modal / drawer ---------------- */
 
+const modalStack: number[] = [];
+let modalSeq = 0;
 export function Modal({ title, children, onClose, wide }: { title: ReactNode; children: ReactNode; onClose: () => void; wide?: boolean }) {
+  const close = useRef(onClose);
+  close.current = onClose;
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const id = ++modalSeq;
+    modalStack.push(id);
+    // Esc fecha só a janela do topo (janelas empilhadas não fecham todas de uma vez)
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && modalStack[modalStack.length - 1] === id) { e.stopPropagation(); close.current(); } };
     window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+    return () => { window.removeEventListener('keydown', k); const i = modalStack.indexOf(id); if (i >= 0) modalStack.splice(i, 1); };
+  }, []);
   return (
     <div className="modal-back" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
@@ -131,7 +138,15 @@ export function Drawer({ title, icon, children, onClose, tabs, tab, setTab, wide
 export function MoneyInput({ value, onChange, autoFocus, placeholder = '0,00', allowNegative, id }: { value: Cents | null; onChange: (v: Cents | null) => void; autoFocus?: boolean; placeholder?: string; allowNegative?: boolean; id?: string }) {
   const [text, setText] = useState(value != null ? centsToInput(value) : '');
   const [bad, setBad] = useState(false);
-  useEffect(() => { if (value == null && text !== '' && !bad) setText(''); /* eslint-disable-line */ }, [value]);
+  const emitted = useRef<Cents | null>(value);
+  // valor alterado de fora (ex.: sugestão automática) atualiza o texto
+  useEffect(() => {
+    if (value === emitted.current) return;
+    emitted.current = value;
+    setBad(false);
+    setText(value != null ? centsToInput(value) : '');
+  }, [value]);
+  const emit = (v: Cents | null) => { emitted.current = v; onChange(v); };
   return (
     <div className="row" style={{ gap: 0 }}>
       <span style={{ padding: '8px 10px', background: '#0e0b14', borderRadius: '4px 0 0 4px', border: '2px solid var(--line)', borderRight: 'none', color: 'var(--ink-3)' }}>R$</span>
@@ -142,9 +157,9 @@ export function MoneyInput({ value, onChange, autoFocus, placeholder = '0,00', a
         onChange={(e) => {
           const t = e.target.value;
           setText(t);
-          if (!t.trim()) { setBad(false); onChange(null); return; }
+          if (!t.trim()) { setBad(false); emit(null); return; }
           const v = parseBRL(t);
-          if (v == null || (!allowNegative && v < 0)) { setBad(true); onChange(null); } else { setBad(false); onChange(v); }
+          if (v == null || (!allowNegative && v < 0)) { setBad(true); emit(null); } else { setBad(false); emit(v); }
         }}
       />
     </div>

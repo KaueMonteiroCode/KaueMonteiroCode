@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { addDays, formatDateBR, monthKey, monthName, todayISO, addMonthKey } from '../../core/dates';
 import { formatBRL, type Cents } from '../../core/money';
 import {
-  accountName, averageMonthlyExpense, balancesAt, calendarEvents, cardInvoices, debtInstallments, goalProgress, monthSummary, totals,
+  accountName, averageMonthlyExpense, balancesAt, calendarEvents, cardInvoiceStatus, debtInstallments, goalProgress, monthSummary, totals,
 } from '../../finance/ledger';
 import * as A from '../../state/actions';
 import type { Account, AccountType, SaveData, Transaction } from '../../state/types';
@@ -313,9 +313,11 @@ function CardsView({ save }: { save: SaveData }) {
     <>
       <div className="row between" style={{ marginBottom: 8 }}><b>Cartões de crédito</b><button className="btn sm primary" onClick={() => setForm({})}>+ Cartão</button></div>
       {cards.map((c) => {
-        const inv = cardInvoices(fin, c);
+        const inv = cardInvoiceStatus(fin, c);
         const owed = -(bal.get(c.id) ?? 0);
-        const months = [0, 1, 2, 3, 4, 5].map((i) => addMonthKey(cur, i));
+        // faturas atrasadas não pagas + mês atual + próximos 5
+        const late = [...inv.entries()].filter(([m, st]) => m < cur && !st.paid).map(([m]) => m);
+        const months = [...late, ...[0, 1, 2, 3, 4, 5].map((i) => addMonthKey(cur, i))];
         return (
           <div key={c.id} className="card">
             <div className="row between"><b>{c.name}</b><span className="small">fecha dia {c.closingDay ?? '—'} · vence dia {c.dueDay ?? '—'}</span></div>
@@ -324,7 +326,16 @@ function CardsView({ save }: { save: SaveData }) {
             <table className="tbl" style={{ marginTop: 8 }}>
               <thead><tr><th>Fatura</th><th className="r">Compras</th><th /></tr></thead>
               <tbody>
-                {months.map((m) => <tr key={m}><td>{monthName(m)}</td><td className="r">{formatBRL(inv.get(m) ?? 0)}</td><td className="r">{(inv.get(m) ?? 0) > 0 && <button className="btn sm" onClick={() => setPay({ card: c, month: m, amount: Math.min(inv.get(m) ?? 0, owed) })}>Pagar</button>}</td></tr>)}
+                {months.map((m) => {
+                  const st = inv.get(m);
+                  return (
+                    <tr key={m}>
+                      <td>{monthName(m)}{m < cur && st && !st.paid ? <span className="neg tiny"> · atrasada</span> : null}</td>
+                      <td className="r">{formatBRL(st?.amount ?? 0)}</td>
+                      <td className="r">{!st ? null : st.paid ? <span className="chip pos">paga</span> : <button className="btn sm" onClick={() => setPay({ card: c, month: m, amount: Math.max(1, Math.min(st.remaining, owed > 0 ? owed : st.remaining)) })}>Pagar {st.remaining !== st.amount ? formatBRL(st.remaining) : ''}</button>}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             <div className="tiny muted">As faturas mostram as compras de cada mês (com parcelas). O pagamento é uma transferência da sua conta para o cartão.</div>

@@ -139,10 +139,7 @@ export class GameEngine {
       this.spawnNpcs();
       this.fit(true);
     } else {
-      // se o tile do jogador ficou bloqueado, reposiciona
-      const px = Math.floor(this.player.x), py = Math.floor(this.player.y);
-      if (!this.player.seatUid && (!this.grid[px] || this.grid[px][py] === undefined || this.grid[px][py])) this.spawnPlayer();
-      if (this.player.seatUid && !this.room!.placed.some((p) => p.item.uid === this.player.seatUid)) { this.player.seatUid = undefined; this.player.anim = 'idle'; this.spawnPlayer(); }
+      for (const a of [this.player, ...this.npcs]) this.revalidateActor(a);
     }
   }
 
@@ -150,6 +147,21 @@ export class GameEngine {
     const r = this.room!;
     const f = nearestFree(this.grid, r.W / 2, r.D / 2) ?? [0, 0];
     Object.assign(this.player, { x: f[0] + 0.5, y: f[1] + 0.5, z: 0, path: [], anim: 'idle', seatUid: undefined });
+  }
+
+  /** Depois de uma mudança no ambiente: levanta quem perdeu o assento e desloca quem ficou dentro de um móvel. */
+  private revalidateActor(a: Actor) {
+    if (a.path.some(([x, y]) => this.grid[x]?.[y] !== false)) { a.path = []; a.onArrive = undefined; if (a.anim === 'walk') a.anim = 'idle'; }
+    if (a.seatUid !== undefined) {
+      const seat = this.room!.placed.find((p) => p.item.uid === a.seatUid);
+      const inside = seat && a.x >= seat.p.x && a.x <= seat.p.x + seat.w && a.y >= seat.p.y && a.y <= seat.p.y + seat.d;
+      if (seat && inside) return;
+      a.seatUid = undefined; a.z = 0; a.anim = 'idle'; a.lie = undefined;
+    }
+    const px = Math.floor(a.x), py = Math.floor(a.y);
+    if (this.grid[px]?.[py] === false) return;
+    const f = nearestFree(this.grid, a.x, a.y) ?? [0, 0];
+    Object.assign(a, { x: f[0] + 0.5, y: f[1] + 0.5, z: 0, path: [], anim: 'idle' });
   }
 
   private spawnNpcs() {

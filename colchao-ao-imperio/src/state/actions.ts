@@ -363,6 +363,16 @@ export function sellItem(itemUid: number) {
     const it = d.game.inventory.find((i) => i.uid === itemUid) ?? fail('Item não encontrado');
     if (it.locked || it.gift) fail('Este item veio com o imóvel e não pode ser vendido (só movido ou guardado).');
     const def = getItem(it.defId)!;
+    // itens apoiados nesta mesa voltam para o inventário (não ficam flutuando)
+    if (def.surface && it.placed) {
+      const room = roomInfo(d, it.placed.propertyId);
+      const me = room.placed.find((x) => x.item.uid === itemUid);
+      if (me) for (const o of room.placed) {
+        if (o.def.place === 'top' && o.z > 0 && o.p.x >= me.p.x && o.p.x < me.p.x + me.w && o.p.y >= me.p.y && o.p.y < me.p.y + me.d) {
+          const oi = d.game.inventory.find((i) => i.uid === o.item.uid); if (oi) oi.placed = null;
+        }
+      }
+    }
     d.game.inventory = d.game.inventory.filter((i) => i.uid !== itemUid);
     const value = sellPrice(def);
     d.game.coinLedger.push({ id: uid('c_'), at: Date.now(), amount: value, reason: `Venda: ${def.name}`, kind: 'sell', ref: String(itemUid) });
