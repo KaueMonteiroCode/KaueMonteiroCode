@@ -26,6 +26,9 @@ npm run build
 npm run preview
 ```
 
+App de Windows (.exe): `npm run build:exe` gera `dist-exe/Colchao-ao-Imperio-Windows.zip`.
+Extraia e abra `Colchao ao Imperio.exe`; o jogo roda offline e o save fica no computador.
+
 Testes:
 
 ```bash
