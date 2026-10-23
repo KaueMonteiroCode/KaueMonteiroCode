@@ -13,9 +13,12 @@
     "visual": "node scripts/visual.mjs",
     "build:page": "vite build && node scripts/build-artifact.mjs",
     "build:file": "vite build && node scripts/build-artifact.mjs --standalone",
-    "build:exe": "npm run build:file && node scripts/build-exe.mjs"
+    "build:exe": "npm run build:file && node scripts/build-exe.mjs",
+    "build:office": "vite build --config vite.office.config.ts && node scripts/build-artifact.mjs --office --standalone",
+    "office": "node office-server/server.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

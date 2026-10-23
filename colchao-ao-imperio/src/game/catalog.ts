@@ -785,3 +785,13 @@ export function collectionItems(cid: string) {
 }
 
 export { withAlpha };
+
+/* ===================== extensões (Escritório dos robôs) ===================== */
+
+/** Registra um item extra em tempo de execução (não entra na loja do jogo). */
+export function registerItem(d: ItemDef, overwrite = false) {
+  if (ITEMS_BY_ID[d.id] && !overwrite) return ITEMS_BY_ID[d.id];
+  ITEMS_BY_ID[d.id] = d;
+  return d;
+}
+export const models = { chairModel, deskModel, rug, rugPaint, box, spr, rect };

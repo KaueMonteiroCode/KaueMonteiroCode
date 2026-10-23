@@ -1,0 +1,10 @@
+{
+  "title": "Escritório",
+  "boss": "",
+  "agents": [
+    { "id": "alfredo", "name": "Alfredo", "project": "Buscas ML / Shopee", "role": "Procura ofertas no Mercado Livre (e em breve na Shopee).", "color": "#e2b53f", "icon": "cart", "staleMin": 60, "avatar": { "hairStyle": 1, "hairColor": 0, "accessory": 3 } },
+    { "id": "teo", "name": "Téo", "project": "Geração de vídeos", "role": "Gera 5 vídeos por dia automaticamente.", "color": "#8e52d6", "icon": "video", "staleMin": 240, "avatar": { "hairStyle": 9, "hairColor": 1, "accessory": 3, "skin": 3 } },
+    { "id": "bia", "name": "Bia", "project": "Caramelinho Promos", "role": "Cuida do painel do Caramelinho Promos.", "color": "#e86fb0", "icon": "gift", "staleMin": 120, "avatar": { "hairStyle": 5, "hairColor": 8, "accessory": 3, "skin": 1 } },
+    { "id": "nando", "name": "Nando", "project": "Finanças", "role": "Acompanha o jogo de finanças (Do Colchão ao Império).", "color": "#2e9e5b", "icon": "money", "staleMin": 1440, "avatar": { "hairStyle": 2, "hairColor": 2, "accessory": 1, "beard": 2, "skin": 2 } }
+  ]
+}

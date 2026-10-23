@@ -36,7 +36,12 @@ export interface Actor {
   idleUntil?: number;
   name?: string;
   lie?: number;
+  /** NPC ligado a um robô/projeto (Escritório): fica na própria mesa */
+  agent?: { state: AgentState; seat: number; desk?: number; until?: number };
 }
+
+export type AgentState = 'working' | 'idle' | 'done' | 'error' | 'offline';
+export interface AgentSpec { id: string; name: string; avatar: AvatarConfig; seat: number; desk?: number }
 
 interface Particle { x: number; y: number; vx: number; vy: number; c: string; life: number; max: number; r: number; kind: 'confetti' | 'coin' | 'spark' }
 interface FloatText { x: number; y: number; text: string; color: string; life: number }
@@ -53,6 +58,7 @@ export interface EngineCallbacks {
   onHint?: (text: string) => void;
   onPreview?: () => void;
   onPet?: () => void;
+  onActorClick?: (id: string) => void;
 }
 
 const SAYINGS: Record<string, string[]> = {
@@ -109,6 +115,8 @@ export class GameEngine {
   destroyed = false;
   /** espaço ocupado por painéis à direita/embaixo (px de canvas) */
   inset = { right: 0, bottom: 0 };
+  /** modo Escritório: NPCs são robôs presos às mesas; sem "vida própria" do jogador */
+  office = false;
   lowPower = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -143,7 +151,7 @@ export class GameEngine {
     this.syncPet(save);
     if (propChanged) {
       this.spawnPlayer();
-      this.spawnNpcs();
+      if (!this.office) this.spawnNpcs();
       this.fit(true);
     } else {
       for (const a of this.allActors()) this.revalidateActor(a);
@@ -605,6 +613,7 @@ export class GameEngine {
   }
 
   private npcThink(a: Actor, now: number) {
+    if (a.agent) { this.agentThink(a, now); return; }
     a.idleUntil = now + 3000 + Math.random() * 7000;
     const r = Math.random();
     if (a.seatUid !== undefined && r < 0.6) return; // continua trabalhando
@@ -645,7 +654,7 @@ export class GameEngine {
     }
     if (!this.room || !this.save) return;
     const now = performance.now();
-    if (this.mode === 'play' && now - this.lastInput > 25000 && now > this.nextIdle) this.idleLife(now);
+    if (this.mode === 'play' && !this.office && now - this.lastInput > 25000 && now > this.nextIdle) this.idleLife(now);
     this.updateActor(this.player, dt, now);
     for (const n of this.npcs) this.updateActor(n, dt, now);
     if (this.pet) this.updatePet(this.pet, dt, now);
@@ -660,6 +669,137 @@ export class GameEngine {
     this.floats = this.floats.filter((f) => f.life < 2);
     this.render();
   };
+
+  /* ---------------- Escritório: NPCs-robôs ---------------- */
+
+  /** Cria um NPC por robô, cada um sentado na própria cadeira. */
+  setAgents(specs: AgentSpec[]) {
+    const keep = new Map(this.npcs.map((n) => [n.id, n]));
+    this.npcs = specs.map((s) => {
+      const old = keep.get(s.id);
+      if (old && old.agent?.seat === s.seat) { old.avatar = s.avatar; old.name = s.name; return old; }
+      const a: Actor = { id: s.id, name: s.name, isPlayer: false, avatar: s.avatar, x: 0.5, y: 0.5, z: 0, dir: 0, anim: 'idle', path: [], speed: 1.8, agent: { state: 'idle', seat: s.seat, desk: s.desk } };
+      const seat = this.room?.placed.find((p) => p.item.uid === s.seat);
+      if (seat) { a.x = seat.p.x + 0.5; a.y = seat.p.y + 0.5; this.sitOn(a, s.seat, 'sit'); }
+      return a;
+    });
+  }
+
+  /** Muda o estado de um robô; o NPC reage na hora. */
+  setAgentState(id: string, state: AgentState, say?: string) {
+    const a = this.npcs.find((n) => n.id === id);
+    if (!a?.agent) return;
+    const changed = a.agent.state !== state;
+    a.agent.state = state;
+    if (say) this.say(a, say, 4);
+    if (changed || state === 'done') { a.idleUntil = 0; a.agent.until = undefined; }
+  }
+
+  /** Comemoração local de um robô (ex.: terminou um vídeo). */
+  agentCelebrate(id: string, text?: string) {
+    const a = this.npcs.find((n) => n.id === id);
+    if (!a?.agent) return;
+    this.standUp(a);
+    a.path = []; a.anim = 'celebrate';
+    a.agent.until = performance.now() + 2600;
+    a.idleUntil = a.agent.until;
+    if (text) this.say(a, text, 4);
+    if (this.reduceMotion) return;
+    const sx = this.O.x + isoX(a.x, a.y), sy = this.O.y + isoY(a.x, a.y, 1.6);
+    const cols = ['#ff5d7f', '#ffd34d', '#4ade80', '#60a5fa', '#c084fc', '#ffffff'];
+    for (let i = 0; i < 40; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 2;
+      const sp = 50 + Math.random() * 100;
+      this.particles.push({ x: sx, y: sy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, c: cols[i % cols.length], life: 0, max: 1.4 + Math.random(), r: 1 + Math.random() * 2, kind: 'confetti' });
+    }
+  }
+
+  /** Comportamento de cada robô conforme o estado relatado. */
+  private agentThink(a: Actor, now: number) {
+    const ag = a.agent!;
+    a.idleUntil = now + 2500 + Math.random() * 3000;
+    const seatPi = this.room!.placed.find((p) => p.item.uid === ag.seat);
+    const goSit = (anim: AvatarAnim) => {
+      if (!seatPi) return;
+      if (a.seatUid === ag.seat) { a.anim = anim; return; }
+      this.standUp(a);
+      for (let i = seatPi.p.x - 1; i <= seatPi.p.x + seatPi.w; i++) for (let j = seatPi.p.y - 1; j <= seatPi.p.y + seatPi.d; j++) {
+        if (this.grid[i]?.[j] !== false) continue;
+        const path = findPath(this.grid, Math.floor(a.x), Math.floor(a.y), i, j);
+        if (path) { a.path = path.slice(1); a.onArrive = () => this.sitOn(a, ag.seat, anim); if (!a.path.length) this.sitOn(a, ag.seat, anim); return; }
+      }
+      // sem caminho: teletransporta (ex.: layout mudou)
+      a.x = seatPi.p.x + 0.5; a.y = seatPi.p.y + 0.5; this.sitOn(a, ag.seat, anim);
+    };
+    if (ag.until && now < ag.until) return;
+    if (a.anim === 'celebrate' || a.anim === 'drink') a.anim = 'idle';
+    switch (ag.state) {
+      case 'working':
+      case 'done':
+        goSit('type');
+        break;
+      case 'offline':
+        goSit('sit');
+        if (Math.random() < 0.5) this.say(a, 'Zzz...', 2.5);
+        break;
+      case 'error':
+        if (a.seatUid !== undefined) { this.standUp(a); a.dir = 0; }
+        a.anim = 'idle';
+        if (Math.random() < 0.6) this.say(a, 'Chefe, deu erro!', 2.5);
+        break;
+      case 'idle': {
+        // de vez em quando vai buscar café/água e volta
+        if (a.seatUid !== undefined && Math.random() < 0.18) {
+          const spots = this.room!.placed.filter((p) => p.def.use === 'coffee' || p.def.use === 'water');
+          const sp = spots[Math.floor(Math.random() * spots.length)];
+          if (sp) {
+            this.standUp(a);
+            for (let i = sp.p.x - 1; i <= sp.p.x + sp.w; i++) for (let j = sp.p.y - 1; j <= sp.p.y + sp.d; j++) {
+              if (this.grid[i]?.[j] !== false) continue;
+              const path = findPath(this.grid, Math.floor(a.x), Math.floor(a.y), i, j);
+              if (path) {
+                a.path = path.slice(1);
+                a.onArrive = () => { this.faceTowards(a, sp.p.x + 0.5, sp.p.y + 0.5); a.anim = 'drink'; ag.until = performance.now() + 2500; a.idleUntil = ag.until; };
+                return;
+              }
+            }
+          }
+        }
+        goSit('sit');
+      }
+    }
+  }
+
+  /** NPC sob o ponteiro (tela em px do canvas). */
+  pickActor(sx: number, sy: number): Actor | null {
+    if (!this.room) return null;
+    const w = this.screenToWorld(sx, sy);
+    let best: Actor | null = null, bd = Infinity;
+    for (const a of this.npcs) {
+      const fx = this.O.x + isoX(a.x, a.y), fy = this.O.y + isoY(a.x, a.y, a.z);
+      const top = this.O.y + isoY(a.x, a.y, a.z + (a.anim === 'sit' || a.anim === 'type' ? 1.25 : 1.75));
+      if (Math.abs(w.x - fx) > 13 || w.y < top - 4 || w.y > fy + 4) continue;
+      const d = Math.abs(w.x - fx);
+      if (d < bd) { bd = d; best = a; }
+    }
+    return best;
+  }
+
+  /** Posição da cabeça de um NPC em px CSS (para etiquetas HTML sobre o canvas). */
+  actorHead(id: string): { x: number; y: number } | null {
+    const a = this.npcs.find((n) => n.id === id);
+    if (!a || !this.room) return null;
+    const p = this.worldToScreen(this.O.x + isoX(a.x, a.y), this.O.y + isoY(a.x, a.y, a.z + (a.anim === 'sit' || a.anim === 'type' ? 1.35 : 1.95)));
+    return { x: p.x / this.dpr, y: p.y / this.dpr };
+  }
+
+  /** Centraliza a câmera num NPC. */
+  focusActor(id: string) {
+    const a = this.npcs.find((n) => n.id === id);
+    if (!a) return;
+    const zoom = Math.max(this.cam.zoom, 2.6 * this.dpr);
+    this.camTarget = { x: this.O.x + isoX(a.x, a.y) + this.inset.right / 2 / zoom, y: this.O.y + isoY(a.x, a.y, 1) + this.inset.bottom / 2 / zoom, zoom };
+  }
 
   /* ---------------- render ---------------- */
 
@@ -1177,7 +1317,7 @@ export class GameEngine {
       return;
     }
     this.hoverUid = this.pick(sx, sy);
-    this.canvas.style.cursor = this.hoverUid != null ? 'pointer' : 'default';
+    this.canvas.style.cursor = this.hoverUid != null || (this.office && this.pickActor(sx, sy)) ? 'pointer' : 'default';
   }
 
   private click(sx: number, sy: number) {
@@ -1187,6 +1327,10 @@ export class GameEngine {
       if (!this.hoverPlace.ok) { this.cb.onPlaceInvalid?.(this.hoverPlace.reason ?? 'Posição inválida'); return; }
       this.cb.onPlace?.(this.hoverPlace.p, this.place);
       return;
+    }
+    if (this.mode === 'play') {
+      const who = this.pickActor(sx, sy);
+      if (who) { this.cb.onActorClick?.(who.id); return; }
     }
     // carinho no bichinho
     if (this.pet && this.mode === 'play') {

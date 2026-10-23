@@ -137,6 +137,41 @@ Moedas e XP **não são acumulados por evento**: são **recalculados do históri
 - Anti-fraude reforçado: só conta a queda do **total** devido (refinanciar não rende), parcela parcial
   não quita, backup danificado é reparado e há tela de recuperação em vez de tela branca.
 
+## Escritório dos Robôs (novo)
+
+Um escritório em pixel art (mesmo motor do jogo) onde **cada robô/projeto é um NPC** na própria mesa,
+com setup da cor dele. Os NPCs reagem ao que os robôs relatam: digitam quando estão trabalhando,
+comemoram quando terminam, levantam com "Chefe, deu erro!" quando falham e dormem quando o robô
+fica sem mandar notícias. Clicar num NPC abre a fala dele, as tarefas com progresso, os números e o
+histórico, e dá para conversar com ele (com IA opcional, sempre baseada nos boletins reais).
+
+**Abrir no PC (Windows):** dois cliques em `Abrir-Escritorio.bat` (precisa do Node.js). Ou `npm run office`
+e abra http://localhost:4317. Sem servidor, a página roda em modo demonstração com dados fictícios.
+
+**Ligar um robô:** no fim de cada etapa, ele manda um POST para `/api/report`:
+
+```python
+from office_client import report   # office-server/office_client.py
+report("alfredo", status="working", task="Pesquisando ofertas de fones", progress=40, event="Encontrou 12 ofertas")
+```
+
+```js
+import { report } from './office-server/client.mjs';
+await report({ agent: 'teo', status: 'done', event: 'Vídeo 3 pronto' });
+```
+
+`status`: `working`, `idle`, `done` ou `error` (com `error: "motivo"`). Opcionais: `detail`, `progress`,
+`tasks: [{name, progress}]`, `metrics: {"ofertas hoje": 12}`. Os robôs, nomes, cores e ícones ficam em
+`office-server/data/agents.json` (criado a partir de `agents.example.json` na 1ª execução; o escritório
+recarrega sozinho ao salvar). Cada robô novo ganha uma estação.
+
+**Variáveis:** `ANTHROPIC_API_KEY` liga a IA nas conversas; `HOST=0.0.0.0` + `OFFICE_TOKEN=senha` deixam
+outra pessoa da sua rede acompanhar em `http://IP-do-PC:4317/?k=senha` (aparece em "Online"). O mesmo
+servidor pode ir para um servidor online depois, sem mudar os robôs (só o `OFFICE_URL`).
+
+Desenvolvimento: `npm run office` + `npx vite` e abra http://localhost:5173/escritorio.html (o Vite repassa
+`/api` para o servidor). `npm run build:office` gera `office-server/public/escritorio.html`.
+
 ## Limitações conhecidas / pendências
 
 - Sprites são procedurais (formas geométricas pintadas), não arte desenhada à mão. A estética

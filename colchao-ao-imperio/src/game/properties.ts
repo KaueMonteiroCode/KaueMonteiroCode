@@ -136,3 +136,6 @@ export function roomSize(p: PropertyDef, expansion: number) {
 export function expansionPrice(p: PropertyDef, next: number) {
   return Math.round((60 + p.order * 80) * next * (p.order < 3 ? 1 : 1.5));
 }
+
+/** Ambiente extra fora da progressão do jogo (ex.: Escritório dos robôs). */
+export function registerProperty(p: PropertyDef) { PROPERTIES_BY_ID[p.id] = p; return p; }
