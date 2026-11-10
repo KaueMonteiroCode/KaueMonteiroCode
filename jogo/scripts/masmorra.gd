@@ -135,6 +135,7 @@ func _posicao_livre() -> Vector2:
 
 func _ao_inimigo_morrer(pos: Vector2, tipo: String) -> void:
 	_vivos -= 1
+	Jogo.registrar(tipo)
 	# Chamado durante a física: criar nós só no fim do frame.
 	_soltar_loot.call_deferred(pos, tipo)
 	if _vivos <= 0 and not _terminou:
@@ -206,7 +207,9 @@ func _vitoria() -> void:
 	Jogo.ouro += ouro_run + bonus
 	Jogo.sementes += sementes_run
 	Jogo.passar_dia()
-	Narrador.falar("Vitória! Você leva %d de ouro e %d sementes para casa." % [ouro_run + bonus, sementes_run])
+	Narrador.falar("Vitória! Você leva %d de ouro e %d sementes para casa." % [
+		ouro_run + bonus, sementes_run
+	])
 	Jogo.ir_para("vila")
 
 

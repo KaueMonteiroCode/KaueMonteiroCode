@@ -9,6 +9,7 @@ const Jogador = preload("res://scripts/jogador.gd")
 
 var tipo := "slime"
 var vida := 3
+var vida_max := 3
 var velocidade := 45.0
 var raio := 6.0
 
@@ -37,6 +38,9 @@ func configurar(t: String, nivel: int) -> void:
 
 func _ready() -> void:
 	add_to_group("inimigos")
+	if tipo == "chefe":
+		add_to_group("chefe")
+	vida_max = vida
 	collision_layer = 4
 	collision_mask = 1
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
@@ -113,9 +117,12 @@ func receber_dano(qtd: int) -> void:
 		return
 	vida -= qtd
 	_piscar = 0.08
+	Arte.texto_flutuante(get_parent(), global_position + Vector2(0, -raio - 4.0),
+		str(qtd), Color(1, 0.9, 0.3))
 	if vida <= 0:
 		_morto = true
 		remove_from_group("inimigos")
+		remove_from_group("chefe")
 		morto.emit(global_position, tipo)
 		queue_free()
 

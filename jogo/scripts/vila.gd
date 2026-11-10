@@ -27,6 +27,8 @@ func _ready() -> void:
 		"Dormir (passa o dia)", _dormir)
 	_predio("loja", Color(0.45, 0.45, 0.75), Vector2(56, 48), Vector2(410, 60),
 		"Loja", _abrir_loja)
+	_predio("quadro_missoes", Color(0.55, 0.4, 0.25), Vector2(24, 24), Vector2(320, 66),
+		_dica_quadro, _usar_quadro)
 	_predio("caixa_venda", Color(0.6, 0.4, 0.2), Vector2(20, 16), Vector2(240, 70),
 		"Vender colheitas", _vender)
 	_predio("portal_masmorra", Color(0.25, 0.1, 0.35), Vector2(32, 32), Vector2(420, 262),
@@ -90,7 +92,7 @@ func _criar_bordas() -> void:
 
 
 func _predio(nome: String, cor: Color, tamanho: Vector2, centro: Vector2,
-		dica: String, acao: Callable, solido := true) -> void:
+		dica, acao: Callable, solido := true) -> void:
 	var corpo: Node2D
 	if solido:
 		var estatico := StaticBody2D.new()
@@ -107,7 +109,7 @@ func _predio(nome: String, cor: Color, tamanho: Vector2, centro: Vector2,
 		corpo = Node2D.new()
 	corpo.position = centro
 	corpo.add_child(Arte.visual(nome, cor, tamanho))
-	if not Arte.tem(nome) and dica != "":
+	if not Arte.tem(nome) and acao.is_valid():
 		var rotulo := Label.new()
 		rotulo.text = nome.capitalize()
 		rotulo.add_theme_font_size_override("font_size", 8)
@@ -168,6 +170,7 @@ func _usar_canteiro(i: int) -> void:
 		c["regado"] = false
 		c["dias"] = 0
 		Jogo.colheitas += 1
+		Jogo.registrar("colher")
 		Narrador.falar("Colheita! O Mestre anota no caderno: +1 colheita.")
 	elif not c["regado"]:
 		c["regado"] = true
@@ -215,6 +218,31 @@ func _amanhecer() -> void:
 
 # --- Prédios ---------------------------------------------------------
 
+func _dica_quadro() -> String:
+	if Jogo.missao.is_empty():
+		return "Pedir missão ao Mestre"
+	if Jogo.missao.get("concluida", false):
+		return "Pegar recompensa (%d ouro)" % int(Jogo.missao["recompensa"])
+	return "Missão: " + Jogo.texto_missao()
+
+
+func _usar_quadro() -> void:
+	if Jogo.missao.is_empty():
+		var dado: int = Narrador.rolar_d20("O Mestre inventa uma missão")
+		Jogo.gerar_missao(dado)
+		Narrador.falar("Nova missão: %s. Recompensa: %d ouro." % [
+			Jogo.texto_missao(), int(Jogo.missao["recompensa"])
+		])
+	elif Jogo.missao.get("concluida", false):
+		var recompensa := int(Jogo.missao["recompensa"])
+		Jogo.ouro += recompensa
+		Jogo.missao = {}
+		Jogo.salvar()
+		Narrador.falar("O Mestre entrega a recompensa: +%d de ouro." % recompensa)
+	else:
+		Narrador.falar("O Mestre bate no quadro: 'Ainda falta. %s'" % Jogo.texto_missao())
+
+
 func _dormir() -> void:
 	Jogo.passar_dia()
 	Narrador.falar("O Mestre vira a página. Dia %d." % Jogo.dia)
@@ -256,13 +284,7 @@ func _abrir_loja() -> void:
 	_loja.add_child(centro)
 
 	var painel := PanelContainer.new()
-	var estilo := StyleBoxFlat.new()
-	estilo.bg_color = Color(0.15, 0.12, 0.18, 0.95)
-	estilo.border_color = Color(0.8, 0.65, 0.3)
-	estilo.set_border_width_all(2)
-	estilo.set_corner_radius_all(4)
-	estilo.set_content_margin_all(8)
-	painel.add_theme_stylebox_override("panel", estilo)
+	painel.add_theme_stylebox_override("panel", Arte.estilo_painel())
 	centro.add_child(painel)
 
 	var caixa := VBoxContainer.new()
@@ -342,8 +364,8 @@ func _melhorar_arma() -> void:
 func _melhorar_vida() -> void:
 	if Jogo.vida_max < Jogo.VIDA_MAX_LIMITE and _pagar(Jogo.custo_vida()):
 		Jogo.vida_max += 1
-		_jogador.vida_max = Jogo.vida_max
-		_jogador.vida = Jogo.vida_max
+		_jogador.vida_max = Jogo.vida_total()
+		_jogador.vida = _jogador.vida_max
 		Narrador.falar("Você se sente mais forte. Vida máxima: %d." % Jogo.vida_max)
 		Jogo.salvar()
 	_atualizar_loja()

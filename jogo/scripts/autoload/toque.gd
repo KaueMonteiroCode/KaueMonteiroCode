@@ -14,6 +14,7 @@ var _botoes := [
 	{"acao": "atacar", "texto": "ATK", "raio": 32.0, "desloc": Vector2(-62, -62), "indice": -1},
 	{"acao": "dash", "texto": "DASH", "raio": 22.0, "desloc": Vector2(-132, -42), "indice": -1},
 	{"acao": "interagir", "texto": "USAR", "raio": 22.0, "desloc": Vector2(-62, -136), "indice": -1},
+	{"acao": "habilidade", "texto": "HAB", "raio": 22.0, "desloc": Vector2(-128, -112), "indice": -1},
 ]
 
 

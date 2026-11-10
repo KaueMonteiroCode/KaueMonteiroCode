@@ -7,8 +7,11 @@ var direcao := Vector2.RIGHT
 var velocidade := 200.0
 var dano := 1
 var do_jogador := true
+var duracao := 2.0
+var perfura := false  # atravessa inimigos (para nas paredes)
+var raio := 3.0
+var visual_nome := ""
 
-var _vida := 2.0
 var _usado := false
 
 
@@ -26,12 +29,15 @@ func _ready() -> void:
 	collision_mask = 1 | (4 if do_jogador else 2)
 	var forma := CollisionShape2D.new()
 	var c := CircleShape2D.new()
-	c.radius = 3.0
+	c.radius = raio
 	forma.shape = c
 	add_child(forma)
-	var nome := "tiro_jogador" if do_jogador else "tiro_inimigo"
+
+	var nome := visual_nome
+	if nome == "" or not Arte.tem(nome):
+		nome = "tiro_jogador" if do_jogador else "tiro_inimigo"
 	var cor := Color(1, 0.9, 0.3) if do_jogador else Color(1, 0.3, 0.5)
-	var vis := Arte.visual(nome, cor, Vector2(6, 6))
+	var vis := Arte.visual(nome, cor, Vector2(raio, raio) * 2.0)
 	vis.rotation = direcao.angle()
 	add_child(vis)
 	body_entered.connect(_ao_tocar)
@@ -39,15 +45,17 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	position += direcao * velocidade * delta
-	_vida -= delta
-	if _vida <= 0.0:
+	duracao -= delta
+	if duracao <= 0.0:
 		queue_free()
 
 
 func _ao_tocar(corpo: Node2D) -> void:
 	if _usado:
 		return
-	_usado = true
 	if corpo.has_method("receber_dano"):
 		corpo.call("receber_dano", dano)
+	if perfura and not (corpo is StaticBody2D):
+		return
+	_usado = true
 	queue_free()

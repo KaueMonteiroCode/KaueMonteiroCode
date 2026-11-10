@@ -64,3 +64,33 @@ static func bloco(rect: Rect2, nome: String, cor_a: Color, cor_b: Color) -> Stat
 	vis.z_index = -5
 	corpo.add_child(vis)
 	return corpo
+
+
+static func estilo_painel() -> StyleBoxFlat:
+	var estilo := StyleBoxFlat.new()
+	estilo.bg_color = Color(0.15, 0.12, 0.18, 0.95)
+	estilo.border_color = Color(0.8, 0.65, 0.3)
+	estilo.set_border_width_all(2)
+	estilo.set_corner_radius_all(4)
+	estilo.set_content_margin_all(8)
+	return estilo
+
+
+## Texto que sobe e some (dano, nome de habilidade).
+static func texto_flutuante(pai: Node, pos: Vector2, texto: String, cor: Color) -> void:
+	if pai == null or not pai.is_inside_tree():
+		return
+	var l := Label.new()
+	l.text = texto
+	l.add_theme_font_size_override("font_size", 9)
+	l.add_theme_color_override("font_color", cor)
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 3)
+	l.position = pos + Vector2(-8, -8)
+	l.z_index = 20
+	pai.add_child(l)
+	var tw := l.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(l, "position:y", l.position.y - 14.0, 0.5)
+	tw.tween_property(l, "modulate:a", 0.0, 0.5)
+	tw.chain().tween_callback(l.queue_free)
