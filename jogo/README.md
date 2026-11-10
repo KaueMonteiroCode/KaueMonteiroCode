@@ -48,3 +48,10 @@ Coloque os PNGs em `jogo/assets/sprites/` com **exatamente** estes nomes. O jogo
 
 ## Exportar para Android
 *Projeto → Exportar → Adicionar → Android.* Na primeira vez, o Godot pede para instalar o Android SDK e o modelo de exportação. É só seguir o que ele mostra.
+
+## Teste automático
+O teste joga sozinho: escolhe a classe, mexe na fazenda, na loja e nas missões, passa pelas 5 salas com cada classe e morre de propósito.
+```bash
+godot --headless --path jogo res://testes/teste_fluxo.tscn
+```
+No final, ele mostra `0 falha(s)` se estiver tudo certo.

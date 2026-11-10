@@ -66,7 +66,7 @@ func _proxima_sala() -> void:
 	_criar_paredes(not e_chefe)
 
 	_jogador.global_position = Vector2(_area.size.x / 2.0, _area.size.y - 32.0)
-	_jogador.camera.reset_smoothing()
+	_jogador.limitar_camera(_area.grow(TILE))
 
 	if e_chefe:
 		Narrador.falar("O Mestre baixa a voz: 'O chão treme. O CHEFE desta masmorra acordou.'")

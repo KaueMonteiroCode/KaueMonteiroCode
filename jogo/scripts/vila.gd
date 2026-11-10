@@ -7,6 +7,13 @@ const Hud = preload("res://scripts/hud.gd")
 
 const LARGURA := 480.0
 const ALTURA := 320.0
+const ROTULOS := {
+	"casa": "Casa",
+	"loja": "Loja",
+	"quadro_missoes": "Missões",
+	"caixa_venda": "Venda",
+	"portal_masmorra": "Masmorra",
+}
 
 var _jogador: Jogador
 var _hud: Hud
@@ -43,6 +50,7 @@ func _ready() -> void:
 	_jogador.pode_atacar = false
 	_jogador.position = Vector2(240, 230)
 	add_child(_jogador)
+	_jogador.limitar_camera(Rect2(0, 0, LARGURA, ALTURA).grow(16.0))
 
 	_hud = Hud.new()
 	add_child(_hud)
@@ -111,7 +119,7 @@ func _predio(nome: String, cor: Color, tamanho: Vector2, centro: Vector2,
 	corpo.add_child(Arte.visual(nome, cor, tamanho))
 	if not Arte.tem(nome) and acao.is_valid():
 		var rotulo := Label.new()
-		rotulo.text = nome.capitalize()
+		rotulo.text = ROTULOS.get(nome, nome.capitalize())
 		rotulo.add_theme_font_size_override("font_size", 8)
 		rotulo.position = Vector2(-tamanho.x / 2.0, -tamanho.y / 2.0 - 12.0)
 		corpo.add_child(rotulo)

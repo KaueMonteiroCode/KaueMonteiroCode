@@ -36,6 +36,7 @@ var _escudo := 0.0
 var _rajada := 0.0
 var _tremor := 0.0
 var _visual: Node2D
+var _area_camera := Rect2()
 
 
 func _ready() -> void:
@@ -69,6 +70,7 @@ func _ready() -> void:
 	camera.position_smoothing_speed = 8.0
 	add_child(camera)
 	camera.make_current()
+	get_viewport().size_changed.connect(_aplicar_limites)
 
 
 func _physics_process(delta: float) -> void:
@@ -119,6 +121,32 @@ func receber_dano(qtd: int) -> void:
 		Color(1, 0.35, 0.35))
 	if vida <= 0:
 		morreu.emit()
+
+
+## Impede a câmera de mostrar o vazio fora do mapa.
+## Se o mapa for menor que a tela num eixo, a câmera fica centralizada nele.
+func limitar_camera(area: Rect2) -> void:
+	_area_camera = area
+	_aplicar_limites()
+	camera.reset_smoothing()
+
+
+func _aplicar_limites() -> void:
+	if _area_camera.size == Vector2.ZERO:
+		return
+	var tela := get_viewport_rect().size / camera.zoom
+	var centro := _area_camera.get_center()
+	var a := _area_camera
+	if a.size.x < tela.x:
+		a.position.x = centro.x - tela.x / 2.0
+		a.size.x = tela.x
+	if a.size.y < tela.y:
+		a.position.y = centro.y - tela.y / 2.0
+		a.size.y = tela.y
+	camera.limit_left = floori(a.position.x)
+	camera.limit_top = floori(a.position.y)
+	camera.limit_right = ceili(a.end.x)
+	camera.limit_bottom = ceili(a.end.y)
 
 
 func curar(qtd: int) -> void:
