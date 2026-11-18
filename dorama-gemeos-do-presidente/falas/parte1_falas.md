@@ -59,3 +59,52 @@
 | 6 · Elevador | f10 (Ha-jun) → f11 (Do-hyun) |
 | 7 · A pinta | f12 (Do-hyun) |
 | 8 · Gancho final | f13 (Seo-yeon) → f14 (Do-hyun) |
+
+---
+
+## ⚡ Modo rápido: um áudio por personagem
+
+Gere **um áudio só por personagem** colando o bloco inteiro (com as linhas em branco) e salve
+com o nome indicado. O editor corta sozinho: `python3 editor/cortar_falas.py --parte 1`.
+
+**`p1_hajun_completo.mp3`** (Gael Pires)
+```
+Ha-eun... esse homem tem a minha cara.
+
+Tá bom, mamãe.
+
+Se ele é o nosso pai, eu vou perguntar pra ele!
+
+Moço... por que você tem a minha cara?
+```
+
+**`p1_haeun_completo.mp3`** (Voz Jovem Animada)
+```
+Ele tem até a sua pintinha!
+
+Tá bom, mamãe.
+
+Espera eu, Ha-jun!
+
+A gente tá procurando o nosso agora.
+```
+
+**`p1_seoyeon_completo.mp3`** (menina)
+```
+Gente, hoje a mamãe precisa muito desse emprego. Ninguém sai daqui, tá bom?
+
+Ha-jun! Ha-eun!
+```
+
+**`p1_dohyun_completo.mp3`** (Megumi)
+```
+Cancela a reunião das dez. Eu não tenho tempo pra incompetência.
+
+Cadê os pais de vocês?
+
+Eu é que pergunto, garoto.
+
+Essa pinta...
+
+...Seo-yeon?
+```
