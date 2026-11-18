@@ -11,8 +11,8 @@ Dorama coreano gerado por IA, dublado em português. 8 partes de ~65 s, falas em
 | Han Seo-yeon (mãe, 26) | `fichas/seoyeon_ficha.webp` | ✅ aprovada |
 | Kang Do-hyun (CEO, 31) | `fichas/dohyun_ficha.png` | ✅ aprovada |
 | Ha-eun e Ha-jun (gêmeos, 4) | `fichas/gemeos_ficha.png` | ✅ aprovada |
-| Madame Kang (avó, 62) | — | ⏳ próximo |
-| Yoon Bi-na (vilã, 28) | — | ⏳ |
+| Madame Kang (avó, 62) | `fichas/madamekang_ficha.png` | ✅ aprovada |
+| Yoon Bi-na (vilã, 28) | — | ⏳ próximo |
 | Cenários: saguão e elevador dourado | — | ⏳ |
 
 ## Elenco — blocos fixos (colar igual em todo prompt)
@@ -27,7 +27,7 @@ Dorama coreano gerado por IA, dublado em português. 8 partes de ~65 s, falas em
 
 Roupa dos gêmeos: jaqueta acolchoada verde-menta com gola branca redonda, calça jeans clara, tênis brancos.
 
-**MADAME KANG** (avó, 62) — a definir na ficha: elegante, coque/chanel preto com mecha grisalha, pérolas, vestido preto de gola alta, xale verde-esmeralda.
+**MADAME KANG** (avó, 62) — matriarca chaebol, pele clara bem cuidada, sobrancelhas finas arqueadas, batom vinho. Cabelo preto curto estilo chanel com **mecha grisalha larga do lado esquerdo dela**. Vestido preto longo de gola mandarim com fechos dourados, xale de seda verde-esmeralda com franjas, colar de pérolas de uma volta, brincos de pérola, **broche dourado em forma de flor com pérola** no peito, sapatos pretos de salto baixo.
 
 **YOON BI-NA** (vilã, 28) — a definir na ficha: cabelo longo ondulado, batom vermelho, brincos de diamante, casaco de pele branco sobre vestido vermelho.
 
