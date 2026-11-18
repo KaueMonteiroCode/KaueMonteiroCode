@@ -53,3 +53,14 @@ Roupa dos gêmeos: jaqueta acolchoada verde-menta com gola branca redonda, calç
 - Legenda palavra por palavra no centro, adicionada na montagem.
 - Marcar "conteúdo gerado por IA" ao postar.
 - Nada romântico físico envolvendo as crianças; romance só entre adultos.
+
+## Etapa 2 — vozes (Fish Audio)
+
+| Personagem | Voz (Fish Audio) | Status |
+|---|---|---|
+| Han Seo-yeon | menina · bagiv37621 | ⏳ testar sotaque |
+| Kang Do-hyun | Megumi · Tete Niki | ⏳ testar sotaque/idade |
+| Ha-jun | Gael Pires · Gustavo Pires | ⏳ testar |
+| Ha-eun | Voz Jovem Animada · Assis Filho oficial | ⏳ testar |
+| Yoon Bi-na | SANDRONE OFICIAL · Santiago Neto | ⏳ testar |
+| Madame Kang | — | ⏳ falta escolher |
