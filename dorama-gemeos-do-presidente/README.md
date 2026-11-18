@@ -64,3 +64,8 @@ Roupa dos gêmeos: jaqueta acolchoada verde-menta com gola branca redonda, calç
 | Ha-eun | Voz Jovem Animada · Assis Filho oficial | ⏳ testar |
 | Yoon Bi-na | SANDRONE OFICIAL · Santiago Neto | ⏳ testar |
 | Madame Kang | — | ⏳ falta escolher |
+
+## Editor de novelinhas
+
+Montagem automática em `editor/` (ver `editor/README.md`). Roteiros de montagem em `partes/`, falas para gerar em `falas/`.
+Arquivos gerados vão em `midia/parteN/` e o vídeo final sai em `saida/` (as duas pastas ficam fora do Git).
