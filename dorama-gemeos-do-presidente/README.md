@@ -14,7 +14,8 @@ Dorama coreano gerado por IA, dublado em português. 8 partes de ~65 s, falas em
 | Madame Kang (avó, 62) | `fichas/madamekang_ficha.png` | ✅ aprovada |
 | Yoon Bi-na (vilã, 28) | `fichas/bina_ficha.png` | ✅ aprovada |
 | Cenário: saguão do Kang Group (com retrato do Do-hyun) | `cenarios/cenario_saguao.png` | ✅ aprovado |
-| Cenário: corredor executivo | — | ⏳ próximo |
+| Cenário: corredor executivo (entardecer) | `cenarios/cenario_corredor_entardecer.png` | ✅ aprovado (partes futuras) |
+| Cenário: corredor executivo (manhã) — Parte 1 | — | ⏳ próximo |
 | Cenário: elevador dourado | — | ⏳ |
 
 ## Elenco — blocos fixos (colar igual em todo prompt)
