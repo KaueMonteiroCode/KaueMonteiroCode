@@ -12,8 +12,10 @@ Dorama coreano gerado por IA, dublado em português. 8 partes de ~65 s, falas em
 | Kang Do-hyun (CEO, 31) | `fichas/dohyun_ficha.png` | ✅ aprovada |
 | Ha-eun e Ha-jun (gêmeos, 4) | `fichas/gemeos_ficha.png` | ✅ aprovada |
 | Madame Kang (avó, 62) | `fichas/madamekang_ficha.png` | ✅ aprovada |
-| Yoon Bi-na (vilã, 28) | — | ⏳ próximo |
-| Cenários: saguão e elevador dourado | — | ⏳ |
+| Yoon Bi-na (vilã, 28) | `fichas/bina_ficha.png` | ✅ aprovada |
+| Cenário: saguão do Kang Group (com retrato do Do-hyun) | — | ⏳ próximo |
+| Cenário: corredor executivo | — | ⏳ |
+| Cenário: elevador dourado | — | ⏳ |
 
 ## Elenco — blocos fixos (colar igual em todo prompt)
 
@@ -29,7 +31,7 @@ Roupa dos gêmeos: jaqueta acolchoada verde-menta com gola branca redonda, calç
 
 **MADAME KANG** (avó, 62) — matriarca chaebol, pele clara bem cuidada, sobrancelhas finas arqueadas, batom vinho. Cabelo preto curto estilo chanel com **mecha grisalha larga do lado esquerdo dela**. Vestido preto longo de gola mandarim com fechos dourados, xale de seda verde-esmeralda com franjas, colar de pérolas de uma volta, brincos de pérola, **broche dourado em forma de flor com pérola** no peito, sapatos pretos de salto baixo.
 
-**YOON BI-NA** (vilã, 28) — a definir na ficha: cabelo longo ondulado, batom vermelho, brincos de diamante, casaco de pele branco sobre vestido vermelho.
+**YOON BI-NA** (vilã, 28) — herdeira mimada, pele clara de porcelana, rosto anguloso, olhos delineados puxados para cima, batom vermelho intenso. Cabelo preto longo com ondas largas estilo Hollywood, repartido de lado. Casaco longo de pele sintética branca aberto, **vestido vermelho tomara que caia justo até o joelho**, brincos longos de diamante em gota, pulseira de diamantes, bolsa preta matelassê com corrente dourada, scarpins vermelhos de verniz.
 
 ## Enredo
 
