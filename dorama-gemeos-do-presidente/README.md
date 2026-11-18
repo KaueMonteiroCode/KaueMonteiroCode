@@ -15,8 +15,8 @@ Dorama coreano gerado por IA, dublado em português. 8 partes de ~65 s, falas em
 | Yoon Bi-na (vilã, 28) | `fichas/bina_ficha.png` | ✅ aprovada |
 | Cenário: saguão do Kang Group (com retrato do Do-hyun) | `cenarios/cenario_saguao.png` | ✅ aprovado |
 | Cenário: corredor executivo (entardecer) | `cenarios/cenario_corredor_entardecer.png` | ✅ aprovado (partes futuras) |
-| Cenário: corredor executivo (manhã) — Parte 1 | — | ⏳ próximo |
-| Cenário: elevador dourado | — | ⏳ |
+| Cenário: corredor executivo (manhã) — Parte 1 | `cenarios/cenario_corredor_manha.png` | ✅ aprovado |
+| Cenário: elevador dourado (por dentro) | — | ⏳ próximo |
 
 ## Elenco — blocos fixos (colar igual em todo prompt)
 
