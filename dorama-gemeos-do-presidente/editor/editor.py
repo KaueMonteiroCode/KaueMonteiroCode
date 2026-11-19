@@ -20,12 +20,15 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -33,6 +36,25 @@ RAIZ = Path(__file__).resolve().parent.parent      # pasta da série
 EDITOR = Path(__file__).resolve().parent
 FPS = 30
 W, H = 1080, 1920
+
+# FFmpeg fora do PATH (Windows): usa o portátil em %LOCALAPPDATA%\Programs\ffmpeg\bin, se existir
+if not shutil.which("ffmpeg"):
+    _ff = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "ffmpeg" / "bin"
+    if (_ff / "ffmpeg.exe").exists():
+        os.environ["PATH"] = str(_ff) + os.pathsep + os.environ.get("PATH", "")
+
+
+def _procurar_acima(rel: str) -> Path | None:
+    """Procura uma pasta/arquivo subindo a partir da pasta da série (ex.: modelo do Whisper, biblioteca de sfx)."""
+    for base in (RAIZ, *RAIZ.parents):
+        if (base / rel).exists():
+            return base / rel
+    return None
+
+
+WHISPER_MODELO = (Path(os.environ["DORAMA_WHISPER"]) if os.environ.get("DORAMA_WHISPER")
+                  else _procurar_acima("modelo/whisper-large-v3-turbo"))
+SFX_BIBLIOTECA = _procurar_acima("sfx")      # biblioteca extra fora do Git (Kenney CC0, Pixabay)
 
 # ---------------------------------------------------------------- utilidades
 
@@ -105,6 +127,80 @@ def fala_no_audio_do_clipe(clipe: Path) -> tuple[float, float] | None:
     return on, off
 
 
+_whisper = None
+
+
+def palavras_whisper(clipe: Path) -> list[dict] | None:
+    """Palavras faladas no som do clipe com o tempo de cada uma: [{'w', 's', 'u'}].
+    Usa o Whisper (faster-whisper) se estiver instalado; guarda o resultado em .whisper/ ao lado do clipe."""
+    global _whisper
+    if not WHISPER_MODELO or not WHISPER_MODELO.exists():
+        return None
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        return None
+    st = clipe.stat()
+    cache = clipe.parent / ".whisper" / f"{clipe.stem}.json"
+    chave = f"{st.st_size}-{int(st.st_mtime)}"
+    if cache.exists():
+        d = json.loads(cache.read_text(encoding="utf-8"))
+        if d.get("chave") == chave:
+            return d["palavras"]
+    import numpy as np
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(clipe), "-vn", "-ac", "1", "-ar", "16000",
+                        "-f", "s16le", "-"], capture_output=True, check=True)
+    som = np.frombuffer(r.stdout, dtype=np.int16).astype(np.float32) / 32768
+    if _whisper is None:
+        _whisper = WhisperModel(str(WHISPER_MODELO), device="cpu", compute_type="int8",
+                                cpu_threads=os.cpu_count() or 4)
+    segs, _ = _whisper.transcribe(som, language="pt", word_timestamps=True, beam_size=5,
+                                  condition_on_previous_text=False, vad_filter=False)
+    pal = [{"w": p.word.strip(), "s": round(p.start, 3), "u": round(p.end, 3)}
+           for s in segs for p in (s.words or []) if p.word.strip()]
+    cache.parent.mkdir(exist_ok=True)
+    cache.write_text(json.dumps({"chave": chave, "palavras": pal}, ensure_ascii=False), encoding="utf-8")
+    return pal
+
+
+def _norm(p: str) -> str:
+    p = unicodedata.normalize("NFD", p.lower())
+    return re.sub(r"[^a-z0-9]", "", "".join(c for c in p if unicodedata.category(c) != "Mn"))
+
+
+def alinhar_roteiro(roteiro: list[str], ouvidas: list[dict]) -> list[tuple[float, float]]:
+    """Tempo de cada palavra do roteiro, casando com as palavras que o Whisper ouviu.
+    Palavra que não casou ganha o tempo entre as vizinhas (proporcional ao tamanho)."""
+    a = [_norm(p) for p in roteiro]
+    b = [_norm(p["w"]) for p in ouvidas]
+    tempos: list[tuple[float, float] | None] = [None] * len(roteiro)
+    for bl in difflib.SequenceMatcher(None, a, b, autojunk=False).get_matching_blocks():
+        for k in range(bl.size):
+            o = ouvidas[bl.b + k]
+            tempos[bl.a + k] = (o["s"], o["u"])
+    ini_total, fim_total = ouvidas[0]["s"], ouvidas[-1]["u"]
+    i = 0
+    while i < len(tempos):
+        if tempos[i] is not None:
+            i += 1
+            continue
+        j = i
+        while j < len(tempos) and tempos[j] is None:
+            j += 1
+        t0 = tempos[i - 1][1] if i > 0 else ini_total
+        t1 = tempos[j][0] if j < len(tempos) else fim_total
+        if t1 <= t0:
+            t1 = t0 + 0.12 * (j - i)
+        pesos = [len(_norm(roteiro[k])) + 2 for k in range(i, j)]
+        t = t0
+        for k, w in zip(range(i, j), pesos):
+            d = (t1 - t0) * w / sum(pesos)
+            tempos[k] = (t, t + d)
+            t += d
+        i = j
+    return tempos  # type: ignore[return-value]
+
+
 def estimar_fala(texto: str) -> float:
     return 0.45 + 0.34 * len(texto.split()) + 0.4 * texto.count("...")
 
@@ -123,6 +219,7 @@ class Fala:
     voz_fim: float = 0.0
     legenda: bool = True
     tempo: float = 1.0          # atempo aplicado à voz (encaixe na boca do clipe)
+    tempos: list | None = None  # (início, fim) de cada palavra, relativo ao plano (Whisper)
 
 
 @dataclass
@@ -180,13 +277,14 @@ def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list
         plano = Plano(p["id"], p, clipe, teste)
         ultimo_ini = cursor
         for f in p.get("falas", []):
-            arq = midia / f["audio"]
-            fala = Fala(f["texto"], f.get("quem", ""), arq if arq.exists() else None)
+            arq = midia / f["audio"] if f.get("audio") else None
+            fala = Fala(f["texto"], f.get("quem", ""), arq if arq and arq.exists() else None)
             if fala.audio:
                 fala.dur = duracao(arq)
                 fala.voz_ini, fala.voz_fim = trecho_de_fala(arq)
             else:
-                avisos.append(f"{p['id']}: áudio {f['audio']} ausente → silêncio estimado")
+                if not p.get("audio_do_clipe"):
+                    avisos.append(f"{p['id']}: áudio {f.get('audio')} ausente → silêncio estimado")
                 fala.dur = estimar_fala(f["texto"])
                 fala.voz_ini, fala.voz_fim = 0.0, fala.dur
             if alinhado and not plano.falas and fala.audio:
@@ -215,15 +313,45 @@ def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list
 
         if p.get("audio_do_clipe") and clipe:
             # o clipe já vem com a voz sincronizada: usa o som dele e só ajusta a legenda
-            corte = float(p.get("cortar_inicio", 0.0))
+            textos = [f for f in p.get("falas", []) if not f.get("junto")]
+            ouvidas = palavras_whisper(clipe) if textos else None
+            total_clipe = duracao(clipe)
+            if p.get("cortar_inicio") == "auto":
+                # corta o tempo morto antes da primeira palavra (deixa 0,35 s de respiro)
+                corte = max(ouvidas[0]["s"] - 0.35, 0.0) if ouvidas else 0.3
+            else:
+                corte = float(p.get("cortar_inicio", 0.0))
             p = {**p, "cortar_inicio": corte}
             plano.dados = p
             plano.audio_clipe = True
             plano.corte = corte
-            dur_clipe = duracao(clipe) - corte
-            plano.dur = round(float(p.get("dur", dur_clipe)) * FPS) / FPS
+            dur_clipe = total_clipe - corte
+            if p.get("dur") == "auto":
+                fim = (ouvidas[-1]["u"] - corte + float(p.get("respiro", 0.6))) if ouvidas else dur_clipe
+                plano.dur = round(min(max(fim, float(p.get("min", 1.0))), dur_clipe) * FPS) / FPS
+            else:
+                plano.dur = round(float(p.get("dur", dur_clipe)) * FPS) / FPS
+            if ouvidas:
+                # legenda palavra por palavra no tempo exato que o Whisper ouviu
+                todas = [w for f in textos for w in f["texto"].split()]
+                tempos = alinhar_roteiro(todas, ouvidas)
+                novas, k = [], 0
+                for f in textos:
+                    n = len(f["texto"].split())
+                    tt = [(a - corte, b - corte) for a, b in tempos[k:k + n]]
+                    k += n
+                    if not tt or tt[-1][1] <= 0 or tt[0][0] >= plano.dur:
+                        continue
+                    novas.append(Fala(f["texto"], f.get("quem", ""), None, 0.0, plano.dur,
+                                      tt[0][0], tt[-1][1], tempos=tt))
+                plano.falas = novas
+                avisos.append(f"{p['id']}: legenda pelo Whisper ({len(ouvidas)} palavras ouvidas)"
+                              f", corte {corte:.2f}s, plano {plano.dur:.2f}s")
+                plano.inicio = t_global
+                t_global += plano.dur
+                planos.append(plano)
+                continue
             trecho = fala_no_audio_do_clipe(clipe)
-            textos = [f for f in p.get("falas", []) if not f.get("junto")]
             if trecho and textos:
                 ini, fim = trecho[0] - corte, min(trecho[1] - corte, plano.dur)
                 pesos = [max(len(f["texto"]), 1) for f in textos]
@@ -296,16 +424,32 @@ def filtro_visual(plano: Plano, rapido: bool) -> tuple[list[str], str]:
     return entrada, ",".join(cadeia)
 
 
-def renderizar_planos(planos: list[Plano], tmp: Path, rapido: bool) -> Path:
+def achar_lut(nome: str) -> Path | None:
+    for cand in (EDITOR / "luts" / f"{nome}.cube", RAIZ / nome, Path(nome)):
+        if cand.exists():
+            return cand
+    return None
+
+
+def renderizar_planos(planos: list[Plano], tmp: Path, rapido: bool, lut_padrao: str | None = None) -> Path:
     lista = tmp / "planos.txt"
     linhas = []
     for i, plano in enumerate(planos, 1):
         saida = tmp / f"{i:02d}_{plano.id}.mp4"
         entrada, filtro = filtro_visual(plano, rapido)
+        lut = plano.dados.get("lut", lut_padrao)      # cor de K-drama (.cube); "lut": null no plano desliga
+        if lut:
+            arq = achar_lut(lut)
+            if arq:
+                # nome relativo + cwd=tmp: no Windows o "C:" quebra o filtro
+                shutil.copy(arq, tmp / "look.cube")
+                filtro += ",lut3d=file=look.cube:interp=tetrahedral,format=yuv420p"
+            else:
+                print(f"  aviso: LUT {lut} não encontrada — sem cor")
         rodar(["ffmpeg", "-v", "error", "-y", *entrada, "-vf", filtro,
                "-frames:v", str(max(1, round(plano.dur * FPS))), "-an",
                "-c:v", "libx264", "-preset", "ultrafast" if rapido else "veryfast",
-               "-crf", "17", "-r", str(FPS), str(saida)])
+               "-crf", "17", "-r", str(FPS), str(saida)], cwd=tmp)
         linhas.append(f"file '{saida.name}'")
         print(f"  plano {plano.id:>4}  {plano.inicio:6.2f}s  +{plano.dur:5.2f}s  "
               f"{'clipe' if plano.clipe else 'teste'}")
@@ -317,6 +461,19 @@ def renderizar_planos(planos: list[Plano], tmp: Path, rapido: bool) -> Path:
 
 
 # ---------------------------------------------------------------- áudio
+
+
+def achar_sfx(nome: str) -> Path | None:
+    """editor/sfx/<nome>.wav|mp3|ogg; se não tiver, procura na biblioteca extra (pasta sfx/ fora do Git)."""
+    for ext in (".wav", ".mp3", ".ogg"):
+        if (EDITOR / "sfx" / f"{nome}{ext}").exists():
+            return EDITOR / "sfx" / f"{nome}{ext}"
+    if SFX_BIBLIOTECA:
+        for ext in (".wav", ".mp3", ".ogg"):
+            achados = sorted(SFX_BIBLIOTECA.rglob(f"{nome}{ext}"))
+            if achados:
+                return achados[0]
+    return None
 
 
 def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp: Path,
@@ -332,8 +489,7 @@ def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp
             vozes.append(f"[{k}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
                          f"adelay={ms}|{ms}[v{k}]")
             k += 1
-            continue
-        for f in plano.falas:
+        for f in ([] if plano.audio_clipe else plano.falas):
             if not f.audio:
                 continue
             ms = int((plano.inicio + f.inicio) * 1000)
@@ -343,8 +499,8 @@ def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp
                          f"adelay={ms}|{ms}[v{k}]")
             k += 1
         for s in plano.dados.get("sfx", []):
-            arq = EDITOR / "sfx" / f"{s['som']}.wav"
-            if not arq.exists():
+            arq = achar_sfx(s["som"])
+            if not arq:
                 print(f"  aviso: efeito {s['som']} não encontrado")
                 continue
             ms = int((plano.inicio + float(s.get("em", 0))) * 1000)
@@ -395,6 +551,16 @@ def ass_tempo(t: float) -> str:
 
 def palavras_com_tempo(f: Fala) -> list[tuple[str, float, float]]:
     palavras = f.texto.split()
+    if f.tempos and len(f.tempos) == len(palavras):
+        # tempo real de cada palavra (Whisper); cada uma fica na tela até a próxima começar
+        out = []
+        limite = f.dur if f.dur > 0 else 1e9          # não passa do fim do plano
+        for k, (p, (a, b)) in enumerate(zip(palavras, f.tempos)):
+            if a >= limite:
+                break
+            fim = f.tempos[k + 1][0] if k + 1 < len(palavras) else b + 0.25
+            out.append((p, max(a, 0.0), min(max(fim, a + 0.08), limite)))
+        return out
     pesos = []
     for p in palavras:
         peso = len(re.sub(r"\W", "", p)) + 2.0
@@ -502,7 +668,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         print("-- vídeo")
-        mudo = renderizar_planos(planos, tmp, args.rapido)
+        mudo = renderizar_planos(planos, tmp, args.rapido, roteiro.get("lut"))
         print("-- áudio")
         audio = renderizar_audio(planos, total, trilha, tmp,
                                  float(roteiro.get("volume_trilha", 0.35)))

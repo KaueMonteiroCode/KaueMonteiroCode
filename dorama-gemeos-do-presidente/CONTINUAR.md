@@ -42,7 +42,15 @@ python editor/cortar_falas.py --parte 1               # corta pN_<personagem>_co
 ```
 Campos do roteiro em `editor/README.md` (clipe, falas, min, respiro, cortar_inicio, velocidade, efeitos zoom_lento/zoom_rapido/tremor/flash, sfx whoosh/coracao/impacto/elevador/suspense/brilho, audio_do_clipe). Clipe ausente vira imagem de teste; o editor avisa.
 
-## Onde paramos
+## Onde paramos (atualizado 19/11/2026)
+- **Parte 1 montada** (65,0 s, sem música): os clipes chegaram em 2 vídeos (c01–c05 e c06–c17, cortados por troca de
+  cena em `midia/parte1/p1_cXX.mp4`); todos os planos com fala usam `audio_do_clipe` + legenda pelo Whisper.
+- PC do Kaue (Windows): rodar o editor com `..\..\.venv\Scripts\python.exe editor/editor.py partes/parte1.json`
+  (o `.venv` e as ferramentas — Whisper, Real-ESRGAN, RIFE, Demucs, LUTs, sfx — ficam em
+  `PROJETOS\DORAMA GEMEOS DO PRESIDENTE\`, fora do Git; veja `ferramentas.py`).
+- Próximo: Parte 2.
+
+## Onde paramos (antes)
 - Parte 1 com os 17 clipes gerados (c01–c17). Vou te mandar os clipes **com lip sync refeito por mim**. Sua tarefa agora:
   1. Colocar os clipes em `midia/parte1/` com os nomes `p1_c01.mp4` … `p1_c17.mp4` (se vierem com outro nome, me pergunte a ordem ou identifique pelas cenas descritas em `partes/parte1.json`).
   2. Marcar `"audio_do_clipe": true` nos planos com fala que vierem sincronizados (e tirar `lipsync`/`fala_no_clipe`/`alinhar` desses planos), ajustar `cortar_inicio`/`dur` para tirar tempo morto, garantir que o total passe de 60 s.

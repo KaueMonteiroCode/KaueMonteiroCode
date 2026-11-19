@@ -48,8 +48,16 @@ Cada item de `planos` é um clipe do vídeo final, na ordem:
 | `alinhar: "auto"` | acha a fala no áudio que o gerador criou e encaixa a voz do Fish ali (ajusta a velocidade em até ±15%) |
 | `velocidade` | 0.7 = câmera lenta (clipe 30% mais longo), 1.2 = acelerado |
 | `audio_do_clipe: true` | o clipe já vem com a voz sincronizada (lip sync feito fora): usa o som dele, a duração dele, e só coloca a legenda no trecho de fala |
+| `cortar_inicio: "auto"` / `dur: "auto"` | (com `audio_do_clipe`) corta o tempo morto antes da 1ª palavra e depois da última + `respiro`, pelo Whisper |
+| `lut` | no roteiro (vale pra todos) ou no plano: cor de K-drama, `kdrama_quente`, `kdrama_frio`, `kdrama_flashback` (em `editor/luts/`); `"lut": null` no plano desliga |
 | `efeitos` | `zoom_lento`, `zoom_rapido`, `tremor`, `flash` |
-| `sfx` | lista de `{som, em, volume}`; sons em `editor/sfx/` |
+| `sfx` | lista de `{som, em, volume}`; sons em `editor/sfx/` ou na biblioteca extra `sfx/` (fora do Git: Kenney CC0, Pixabay), pelo nome do arquivo sem extensão |
+
+**Legenda pelo Whisper:** se o editor rodar com o Python que tem o `faster-whisper` (o `.venv` da pasta do
+dorama) e achar o modelo `modelo/whisper-large-v3-turbo` numa pasta acima, os planos com `audio_do_clipe`
+ganham a legenda no tempo exato de cada palavra falada no clipe (o texto continua o do roteiro). O resultado
+fica guardado em `midia/parteN/.whisper/`. Sem o Whisper, volta ao jeito antigo (divide pelo volume da voz).
+Se o FFmpeg não estiver no PATH, o editor usa o de `%LOCALAPPDATA%\Programs\ffmpeg\bin`.
 
 Se o clipe for mais curto que o plano, o último quadro congela até o fim (bom para ganchos).
 

@@ -11,15 +11,8 @@
       "clipe": "p1_c01.mp4",
       "teste": "cenarios/cenario_saguao.png",
       "min": 4.5,
-      "efeitos": [
-        "zoom_lento"
-      ],
-      "sfx": [
-        {
-          "som": "whoosh",
-          "em": 0.0
-        }
-      ]
+      "efeitos": ["zoom_lento"],
+      "sfx": [{"som": "whoosh-cinematic", "em": 0.0, "volume": 0.6}]
     },
     {
       "id": "c02",
@@ -27,33 +20,18 @@
       "clipe": "p1_c02.mp4",
       "teste": "fichas/gemeos_ficha.png",
       "foco_teste": 0.88,
-      "falas": [
-        {
-          "audio": "p1_f01_hajun.mp3",
-          "quem": "Ha-jun",
-          "texto": "Ha-eun... esse homem tem a minha cara."
-        }
-      ],
-      "lipsync": true,
-      "fala_no_clipe": 0.0,
-      "respiro": 0.2
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "falas": [{"quem": "Ha-jun", "texto": "Ha-eun... esse homem tem a minha cara."}]
     },
     {
       "id": "c03",
       "descricao": "Push-in no retrato do Do-hyun",
       "clipe": "p1_c03.mp4",
       "teste": "cenarios/cenario_saguao.png",
-      "foco_teste": 0.5,
       "min": 2.0,
-      "efeitos": [
-        "zoom_rapido"
-      ],
-      "sfx": [
-        {
-          "som": "coracao",
-          "em": 0.2
-        }
-      ]
+      "efeitos": ["zoom_rapido"],
+      "sfx": [{"som": "coracao", "em": 0.2}]
     },
     {
       "id": "c04",
@@ -61,149 +39,77 @@
       "clipe": "p1_c04.mp4",
       "teste": "fichas/gemeos_ficha.png",
       "foco_teste": 0.62,
-      "falas": [
-        {
-          "audio": "p1_f02_haeun.mp3",
-          "quem": "Ha-eun",
-          "texto": "Ele tem até a sua pintinha!"
-        }
-      ],
-      "lipsync": true,
-      "fala_no_clipe": 0.0,
-      "respiro": 0.15,
-      "min": 2.0
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "falas": [{"quem": "Ha-eun", "texto": "Ele tem até a sua pintinha!"}]
     },
     {
       "id": "c05",
-      "descricao": "Seo-yeon ajoelha e arruma o lacinho da Ha-eun",
+      "descricao": "Seo-yeon ajoelha com os gêmeos",
       "clipe": "p1_c05.mp4",
       "teste": "fichas/seoyeon_ficha.webp",
       "foco_teste": 0.62,
-      "falas": [
-        {
-          "audio": "p1_f03_seoyeon.mp3",
-          "quem": "Seo-yeon",
-          "texto": "Gente, hoje a mamãe precisa muito desse emprego. Ninguém sai daqui, tá bom?"
-        }
-      ],
-      "lipsync": true,
-      "fala_no_clipe": 1.78,
-      "respiro": 0.15
+      "audio_do_clipe": true,
+      "cortar_inicio": 1.4,
+      "falas": [{"quem": "Seo-yeon", "texto": "Gente, hoje a mamãe precisa muito desse emprego. Ninguém sai daqui, tá bom?"}]
     },
     {
       "id": "c06",
-      "descricao": "Gêmeos no banco trocando olhar de cúmplices",
+      "descricao": "Gêmeos respondem um depois do outro, inocentes demais",
       "clipe": "p1_c06.mp4",
       "teste": "fichas/gemeos_ficha.png",
       "foco_teste": 0.12,
+      "audio_do_clipe": true,
+      "cortar_inicio": 1.3,
       "falas": [
-        {
-          "audio": "p1_f04a_haeun.mp3",
-          "quem": "Ha-eun",
-          "texto": "Tá bom, mamãe."
-        },
-        {
-          "audio": "p1_f04b_hajun.mp3",
-          "quem": "Ha-jun",
-          "texto": "Tá bom, mamãe.",
-          "junto": true
-        }
-      ],
-      "respiro": 0.3,
-      "lipsync": true,
-      "fala_no_clipe": 0.3
-    },
-    {
-      "id": "c07",
-      "descricao": "Gêmeos correm de mãos dadas até o elevador dourado",
-      "clipe": "p1_c07.mp4",
-      "teste": "cenarios/cenario_saguao.png",
-      "foco_teste": 0.75,
-      "efeitos": [
-        "zoom_lento"
-      ],
-      "falas": [
-        {
-          "audio": "p1_f05_hajun.mp3",
-          "quem": "Ha-jun",
-          "texto": "Se ele é o nosso pai, eu vou perguntar pra ele!"
-        },
-        {
-          "audio": "p1_f06_haeun.mp3",
-          "quem": "Ha-eun",
-          "texto": "Espera eu, Ha-jun!"
-        }
-      ],
-      "sfx": [
-        {
-          "som": "whoosh",
-          "em": 0.0
-        }
-      ],
-      "velocidade": 0.72,
-      "cortar_inicio": 0.0,
-      "entrada": 0.9,
-      "respiro": 0.2
-    },
-    {
-      "id": "c08",
-      "descricao": "Corredor: Do-hyun anda em câmera lenta abotoando o paletó",
-      "clipe": "p1_c08.mp4",
-      "teste": "cenarios/cenario_corredor_manha.png",
-      "min": 5.0,
-      "efeitos": [
-        "zoom_lento",
-        "flash"
-      ],
-      "falas": [
-        {
-          "audio": "p1_f07_dohyun.mp3",
-          "quem": "Do-hyun",
-          "texto": "Cancela a reunião das dez. Eu não tenho tempo pra incompetência."
-        }
-      ],
-      "sfx": [
-        {
-          "som": "impacto",
-          "em": 0.0
-        }
-      ],
-      "alinhar": "auto",
-      "respiro": 0.2
-    },
-    {
-      "id": "c09",
-      "descricao": "Do-hyun entra no elevador, portas fechando",
-      "clipe": "p1_c09.mp4",
-      "teste": "cenarios/cenario_elevador.png",
-      "min": 4.2,
-      "efeitos": [
-        "zoom_lento"
-      ],
-      "sfx": [
-        {
-          "som": "elevador",
-          "em": 0.3
-        }
+        {"quem": "Ha-eun", "texto": "Tá bom, mamãe."},
+        {"quem": "Ha-jun", "texto": "Tá bom, mamãe."}
       ]
     },
     {
+      "id": "c07",
+      "descricao": "No banco, Ha-jun cochicha o plano; os dois correm até o elevador",
+      "clipe": "p1_c07.mp4",
+      "teste": "cenarios/cenario_saguao.png",
+      "foco_teste": 0.75,
+      "audio_do_clipe": true,
+      "cortar_inicio": 1.8,
+      "falas": [
+        {"quem": "Ha-jun", "texto": "Se ele é o nosso pai, eu vou perguntar pra ele!"},
+        {"quem": "Ha-eun", "texto": "Espera eu, Ha-jun!"}
+      ],
+      "sfx": [{"som": "whoosh", "em": 3.75, "volume": 0.5}]
+    },
+    {
+      "id": "c08",
+      "descricao": "Corredor: Do-hyun anda com os executivos",
+      "clipe": "p1_c08.mp4",
+      "teste": "cenarios/cenario_corredor_manha.png",
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "dur": 4.5,
+      "efeitos": ["flash"],
+      "falas": [{"quem": "Do-hyun", "texto": "Cancela a reunião das dez. Eu não tenho tempo pra incompetência."}],
+      "sfx": [{"som": "impact-bass-2", "em": 0.0, "volume": 0.45}]
+    },
+    {
+      "id": "c09",
+      "descricao": "Do-hyun no elevador, portas fechando",
+      "clipe": "p1_c09.mp4",
+      "teste": "cenarios/cenario_elevador.png",
+      "min": 4.2,
+      "efeitos": ["zoom_lento"],
+      "sfx": [{"som": "elevador", "em": 0.3}]
+    },
+    {
       "id": "c10",
-      "descricao": "Mãozinha segura a porta; gêmeos entram",
+      "descricao": "Mãozinha segura a porta",
       "clipe": "p1_c10.mp4",
       "teste": "cenarios/cenario_elevador.png",
-      "foco_teste": 0.5,
-      "min": 1.8,
-      "efeitos": [
-        "zoom_rapido"
-      ],
-      "sfx": [
-        {
-          "som": "elevador",
-          "em": 0.0
-        }
-      ],
-      "cortar_inicio": 0.0
+      "min": 1.75,
+      "cortar_inicio": 0.0,
+      "efeitos": ["zoom_rapido"],
+      "sfx": [{"som": "elevador", "em": 0.0}]
     },
     {
       "id": "c11",
@@ -211,13 +117,10 @@
       "clipe": "p1_c11.mp4",
       "teste": "fichas/dohyun_ficha.png",
       "foco_teste": 0.62,
-      "falas": [
-        {
-          "audio": "p1_f08_dohyun.mp3",
-          "quem": "Do-hyun",
-          "texto": "Cadê os pais de vocês?"
-        }
-      ]
+      "audio_do_clipe": true,
+      "cortar_inicio": 1.6,
+      "dur": 2.7,
+      "falas": [{"quem": "Do-hyun", "texto": "Cadê os pais de vocês?"}]
     },
     {
       "id": "c12",
@@ -225,16 +128,9 @@
       "clipe": "p1_c12.mp4",
       "teste": "fichas/gemeos_ficha.png",
       "foco_teste": 0.62,
-      "falas": [
-        {
-          "audio": "p1_f09_haeun.mp3",
-          "quem": "Ha-eun",
-          "texto": "A gente tá procurando o nosso agora."
-        }
-      ],
-      "lipsync": true,
-      "fala_no_clipe": 0.45,
-      "respiro": 0.4
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "falas": [{"quem": "Ha-eun", "texto": "A gente tá procurando o nosso agora."}]
     },
     {
       "id": "c13",
@@ -242,16 +138,10 @@
       "clipe": "p1_c13.mp4",
       "teste": "fichas/gemeos_ficha.png",
       "foco_teste": 0.88,
-      "falas": [
-        {
-          "audio": "p1_f10_hajun.mp3",
-          "quem": "Ha-jun",
-          "texto": "Moço... por que você tem a minha cara?"
-        }
-      ],
-      "lipsync": true,
-      "fala_no_clipe": 0.4,
-      "respiro": 0.4
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "dur": 3.6,
+      "falas": [{"quem": "Ha-jun", "texto": "Moço... por que você tem a minha cara?"}]
     },
     {
       "id": "c14",
@@ -259,19 +149,9 @@
       "clipe": "p1_c14.mp4",
       "teste": "fichas/dohyun_ficha.png",
       "foco_teste": 0.88,
-      "efeitos": [
-        "zoom_lento"
-      ],
-      "falas": [
-        {
-          "audio": "p1_f11_dohyun.mp3",
-          "quem": "Do-hyun",
-          "texto": "Eu é que pergunto, garoto."
-        }
-      ],
-      "lipsync": true,
-      "fala_no_clipe": 2.55,
-      "respiro": 0.4
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "falas": [{"quem": "Do-hyun", "texto": "Eu é que pergunto, garoto."}]
     },
     {
       "id": "c15",
@@ -279,25 +159,11 @@
       "clipe": "p1_c15.mp4",
       "teste": "fichas/dohyun_ficha.png",
       "foco_teste": 0.62,
-      "min": 4.6,
-      "efeitos": [
-        "zoom_rapido",
-        "flash"
-      ],
-      "falas": [
-        {
-          "audio": "p1_f12_dohyun.mp3",
-          "quem": "Do-hyun",
-          "texto": "Essa pinta...",
-          "atraso": 1.3
-        }
-      ],
-      "sfx": [
-        {
-          "som": "coracao",
-          "em": 0.0
-        }
-      ]
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "efeitos": ["flash"],
+      "falas": [{"quem": "Do-hyun", "texto": "Essa pinta... Essa pinta..."}],
+      "sfx": [{"som": "coracao", "em": 0.0, "volume": 0.6}]
     },
     {
       "id": "c16",
@@ -305,61 +171,29 @@
       "clipe": "p1_c16.mp4",
       "teste": "fichas/seoyeon_ficha.webp",
       "foco_teste": 0.88,
-      "efeitos": [
-        "tremor"
-      ],
-      "falas": [
-        {
-          "audio": "p1_f13_seoyeon.mp3",
-          "quem": "Seo-yeon",
-          "texto": "Ha-jun! Ha-eun!"
-        }
-      ],
+      "audio_do_clipe": true,
+      "cortar_inicio": 1.0,
+      "efeitos": ["tremor"],
+      "falas": [{"quem": "Seo-yeon", "texto": "Ha-jun! Ha-eun!"}],
       "sfx": [
-        {
-          "som": "elevador",
-          "em": 0.0
-        },
-        {
-          "som": "whoosh",
-          "em": 0.2
-        }
-      ],
-      "alinhar": "auto",
-      "respiro": 0.3
+        {"som": "elevador", "em": 0.0, "volume": 0.5},
+        {"som": "whoosh", "em": 0.2, "volume": 0.4}
+      ]
     },
     {
       "id": "c17",
-      "descricao": "Seo-yeon e Do-hyun se encaram em choque (congela)",
+      "descricao": "Seo-yeon e Do-hyun se encaram em choque (congela no fim)",
       "clipe": "p1_c17.mp4",
       "teste": "fichas/dohyun_ficha.png",
       "foco_teste": 0.88,
-      "min": 4.5,
-      "efeitos": [
-        "zoom_rapido",
-        "flash",
-        "tremor"
-      ],
-      "falas": [
-        {
-          "audio": "p1_f14_dohyun.mp3",
-          "quem": "Do-hyun",
-          "texto": "...Seo-yeon?"
-        }
-      ],
+      "audio_do_clipe": true,
+      "cortar_inicio": 0.0,
+      "dur": 6.5,
+      "falas": [{"quem": "Do-hyun", "texto": "...Seo-yeon?"}],
       "sfx": [
-        {
-          "som": "suspense",
-          "em": 0.0
-        },
-        {
-          "som": "impacto",
-          "em": 2.6
-        }
-      ],
-      "respiro": 2.0,
-      "lipsync": true,
-      "fala_no_clipe": 2.0
+        {"som": "suspense", "em": 0.0, "volume": 0.5},
+        {"som": "impact-bass-1", "em": 3.9, "volume": 0.6}
+      ]
     }
   ]
 }
