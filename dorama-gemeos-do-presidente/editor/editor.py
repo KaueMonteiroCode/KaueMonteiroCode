@@ -111,10 +111,20 @@ def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list
     t_global = 0.0
     for p in roteiro["planos"]:
         clipe = midia / p["clipe"] if p.get("clipe") else None
-        if clipe and not clipe.exists():
-            avisos.append(f"{p['id']}: clipe {p['clipe']} ausente → usando imagem de teste")
-            clipe = None
         teste = RAIZ / p["teste"] if p.get("teste") else None
+        if clipe and not clipe.exists():
+            # sem vídeo: usa o quadro inicial do ChatGPT (pN_cXX_quadro.png), animado com zoom
+            quadros = [midia / f"{clipe.stem}_quadro{ext}" for ext in (".png", ".jpg", ".jpeg", ".webp")]
+            quadro = next((q for q in quadros if q.exists()), None)
+            if quadro:
+                p = {**p, "foco_teste": 0.5}
+                if not set(p.get("efeitos", [])) & {"zoom_lento", "zoom_rapido"}:
+                    p["efeitos"] = [*p.get("efeitos", []), "zoom_lento"]
+                teste = quadro
+                avisos.append(f"{p['id']}: sem vídeo → usando o quadro {quadro.name} com zoom")
+            else:
+                avisos.append(f"{p['id']}: clipe {p['clipe']} ausente → usando imagem de teste")
+            clipe = None
         plano = Plano(p["id"], p, clipe, teste)
 
         cursor = float(p.get("entrada", 0.35))
