@@ -82,17 +82,24 @@ def fala_no_audio_do_clipe(clipe: Path) -> tuple[float, float] | None:
                        "stream=index", "-of", "csv=p=0", str(clipe)]).strip()
     if not tem_audio:
         return None
-    total = duracao(clipe)
+    # volume em janelas de 50 ms, só na faixa da voz
     out = rodar(["ffmpeg", "-hide_banner", "-i", str(clipe), "-vn", "-af",
-                 "highpass=f=250,lowpass=f=3500,silencedetect=n=-35dB:d=0.3",
+                 "highpass=f=250,lowpass=f=3500,aresample=16000,asetnsamples=800,"
+                 "astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level",
                  "-f", "null", "-"])
-    ini = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", out)]
-    fim = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", out)]
-    if len(fim) < len(ini):
-        fim.append(total)
-    silencios = list(zip(ini, fim))
-    on = silencios[0][1] if silencios and silencios[0][0] <= 0.05 else 0.0
-    off = silencios[-1][0] if silencios and silencios[-1][1] >= total - 0.05 else total
+    tempos = [float(x) for x in re.findall(r"pts_time:([\d.]+)", out)]
+    niveis = [(-99.0 if v in ("-inf", "nan") else float(v))
+              for v in re.findall(r"RMS_level=([-\w.]+)", out)]
+    if not niveis or max(niveis) < -45:
+        return None                      # clipe mudo
+    limite = max(niveis) - 12            # voz = até 12 dB abaixo do pico
+    acima = [n >= limite for n in niveis]
+    # exige 2 janelas seguidas para não pegar estalo
+    idx = [k for k in range(len(acima) - 1) if acima[k] and acima[k + 1]]
+    if not idx:
+        return None
+    on = tempos[idx[0]]
+    off = tempos[min(idx[-1] + 2, len(tempos) - 1)]
     if off - on < 0.4:
         return None          # quase nada de voz: não dá para confiar
     return on, off
@@ -223,7 +230,9 @@ def filtro_visual(plano: Plano, rapido: bool) -> tuple[list[str], str]:
     if plano.clipe:
         corte = float(plano.dados.get("cortar_inicio", 0.3))
         entrada = ["-ss", f"{corte:.2f}", "-i", str(plano.clipe)]
-        base = (f"scale={WW}:{HH}:force_original_aspect_ratio=increase,"
+        vel = float(plano.dados.get("velocidade", 1.0))      # <1 = câmera lenta
+        lento = f"setpts=PTS/{vel}," if abs(vel - 1) > 0.001 else ""
+        base = (f"{lento}scale={WW}:{HH}:force_original_aspect_ratio=increase,"
                 f"crop={WW}:{HH},fps={FPS},setsar=1,"
                 f"tpad=stop_mode=clone:stop_duration={dur + 1:.2f}")
     else:

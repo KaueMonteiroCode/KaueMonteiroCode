@@ -11,7 +11,7 @@
       "descricao": "Saguão: gêmeos entram e olham pra cima",
       "clipe": "p1_c01.mp4",
       "teste": "cenarios/cenario_saguao.png",
-      "min": 3.5,
+      "min": 4.5,
       "efeitos": [
         "zoom_lento"
       ],
@@ -110,8 +110,9 @@
           "junto": true
         }
       ],
-      "respiro": 1.4,
-      "alinhar": "auto"
+      "respiro": 0.3,
+      "lipsync": true,
+      "fala_no_clipe": 0.3
     },
     {
       "id": "c07",
@@ -140,7 +141,10 @@
           "em": 0.0
         }
       ],
-      "alinhar": "auto"
+      "velocidade": 0.72,
+      "cortar_inicio": 0.0,
+      "entrada": 0.9,
+      "respiro": 0.2
     },
     {
       "id": "c08",
@@ -156,8 +160,7 @@
         {
           "audio": "p1_f07_dohyun.mp3",
           "quem": "Do-hyun",
-          "texto": "Cancela a reunião das dez. Eu não tenho tempo pra incompetência.",
-          "atraso": 1.2
+          "texto": "Cancela a reunião das dez. Eu não tenho tempo pra incompetência."
         }
       ],
       "sfx": [
@@ -166,14 +169,15 @@
           "em": 0.0
         }
       ],
-      "alinhar": "auto"
+      "alinhar": "auto",
+      "respiro": 0.2
     },
     {
       "id": "c09",
       "descricao": "Do-hyun entra no elevador, portas fechando",
       "clipe": "p1_c09.mp4",
       "teste": "cenarios/cenario_elevador.png",
-      "min": 3.0,
+      "min": 4.2,
       "efeitos": [
         "zoom_lento"
       ],
@@ -190,7 +194,7 @@
       "clipe": "p1_c10.mp4",
       "teste": "cenarios/cenario_elevador.png",
       "foco_teste": 0.5,
-      "min": 3.5,
+      "min": 1.8,
       "efeitos": [
         "zoom_rapido"
       ],
@@ -199,7 +203,8 @@
           "som": "elevador",
           "em": 0.0
         }
-      ]
+      ],
+      "cortar_inicio": 0.0
     },
     {
       "id": "c11",
@@ -213,8 +218,7 @@
           "quem": "Do-hyun",
           "texto": "Cadê os pais de vocês?"
         }
-      ],
-      "alinhar": "auto"
+      ]
     },
     {
       "id": "c12",
@@ -229,7 +233,9 @@
           "texto": "A gente tá procurando o nosso agora."
         }
       ],
-      "alinhar": "auto"
+      "lipsync": true,
+      "fala_no_clipe": 0.45,
+      "respiro": 0.4
     },
     {
       "id": "c13",
@@ -244,7 +250,9 @@
           "texto": "Moço... por que você tem a minha cara?"
         }
       ],
-      "alinhar": "auto"
+      "lipsync": true,
+      "fala_no_clipe": 0.4,
+      "respiro": 0.4
     },
     {
       "id": "c14",
@@ -262,7 +270,9 @@
           "texto": "Eu é que pergunto, garoto."
         }
       ],
-      "alinhar": "auto"
+      "lipsync": true,
+      "fala_no_clipe": 2.55,
+      "respiro": 0.4
     },
     {
       "id": "c15",
@@ -270,7 +280,7 @@
       "clipe": "p1_c15.mp4",
       "teste": "fichas/dohyun_ficha.png",
       "foco_teste": 0.62,
-      "min": 4.0,
+      "min": 4.6,
       "efeitos": [
         "zoom_rapido",
         "flash"
@@ -288,8 +298,7 @@
           "som": "coracao",
           "em": 0.0
         }
-      ],
-      "alinhar": "auto"
+      ]
     },
     {
       "id": "c16",
@@ -304,8 +313,7 @@
         {
           "audio": "p1_f13_seoyeon.mp3",
           "quem": "Seo-yeon",
-          "texto": "Ha-jun! Ha-eun!",
-          "atraso": 0.4
+          "texto": "Ha-jun! Ha-eun!"
         }
       ],
       "sfx": [
@@ -318,7 +326,8 @@
           "em": 0.2
         }
       ],
-      "alinhar": "auto"
+      "alinhar": "auto",
+      "respiro": 0.3
     },
     {
       "id": "c17",
@@ -326,7 +335,7 @@
       "clipe": "p1_c17.mp4",
       "teste": "fichas/dohyun_ficha.png",
       "foco_teste": 0.88,
-      "min": 6.0,
+      "min": 4.5,
       "efeitos": [
         "zoom_rapido",
         "flash",
@@ -336,8 +345,7 @@
         {
           "audio": "p1_f14_dohyun.mp3",
           "quem": "Do-hyun",
-          "texto": "...Seo-yeon?",
-          "atraso": 1.0
+          "texto": "...Seo-yeon?"
         }
       ],
       "sfx": [
@@ -350,8 +358,9 @@
           "em": 2.6
         }
       ],
-      "respiro": 3.0,
-      "alinhar": "auto"
+      "respiro": 2.0,
+      "lipsync": true,
+      "fala_no_clipe": 2.0
     }
   ],
   "volume_trilha": 0.35
