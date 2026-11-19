@@ -37,8 +37,8 @@ W, H = 1080, 1920
 # ---------------------------------------------------------------- utilidades
 
 
-def rodar(cmd: list[str]) -> str:
-    r = subprocess.run(cmd, capture_output=True, text=True)
+def rodar(cmd: list[str], cwd: Path | None = None) -> str:
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
     if r.returncode != 0:
         sys.stderr.write(r.stderr[-3000:])
         raise SystemExit(f"\nFalhou: {' '.join(cmd[:6])} ...")
@@ -509,13 +509,14 @@ def main() -> None:
         print("-- legenda e exportação")
         ass = gerar_legenda(roteiro, planos, total, tmp)
         shutil.copy(ass, saida.with_suffix(".ass"))
-        fontes = EDITOR / "fonts"
+        # caminhos relativos no filtro de legenda: no Windows o "C:" quebra o filtro
+        shutil.copytree(EDITOR / "fonts", tmp / "fonts", dirs_exist_ok=True)
         rodar(["ffmpeg", "-v", "error", "-y", "-i", str(mudo), "-i", str(audio),
-               "-vf", f"subtitles={ass}:fontsdir={fontes}",
+               "-vf", f"subtitles={ass.name}:fontsdir=fonts",
                "-c:v", "libx264", "-preset", "veryfast" if args.rapido else "medium",
                "-crf", "20" if args.rapido else "18", "-pix_fmt", "yuv420p", "-r", str(FPS),
                "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
-               str(saida)])
+               str(saida.resolve())], cwd=tmp)
 
     print(f"\nPronto: {saida}  ({total:.1f}s)")
     if total <= 61:
