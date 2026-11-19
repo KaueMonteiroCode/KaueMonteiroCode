@@ -1,3 +1,4 @@
-midia/
+midia/**/*.mp4
+midia/**/*.mov
 saida/
 __pycache__/
