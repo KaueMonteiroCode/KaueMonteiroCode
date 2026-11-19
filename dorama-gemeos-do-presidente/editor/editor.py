@@ -239,7 +239,8 @@ def renderizar_planos(planos: list[Plano], tmp: Path, rapido: bool) -> Path:
 # ---------------------------------------------------------------- áudio
 
 
-def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp: Path) -> Path:
+def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp: Path,
+                     vol_trilha: float = 0.35) -> Path:
     entradas: list[str] = []
     vozes: list[str] = []
     sons: list[str] = []
@@ -280,7 +281,7 @@ def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp
     if trilha:
         entradas += ["-stream_loop", "-1", "-i", str(trilha)]
         partes.append(f"[{k}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
-                      f"atrim=0:{total:.3f},volume=0.22,"
+                      f"atrim=0:{total:.3f},volume={vol_trilha},"
                       f"afade=t=out:st={max(total - 2.5, 0):.2f}:d=2.5[mus]")
         partes.append("[mus][vozsc]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[musd]")
         mix.append("[musd]")
@@ -390,9 +391,15 @@ def main() -> None:
     roteiro = json.loads(roteiro_path.read_text(encoding="utf-8"))
     midia = RAIZ / roteiro["midia"]
     midia.mkdir(parents=True, exist_ok=True)
-    trilha = midia / roteiro["trilha"] if roteiro.get("trilha") else None
-    if trilha and not trilha.exists():
-        trilha = None
+    trilha = None
+    if roteiro.get("trilha"):
+        # procura na pasta de mídia da parte e, se não achar, a partir da pasta da série
+        for cand in (midia / roteiro["trilha"], RAIZ / roteiro["trilha"]):
+            if cand.exists():
+                trilha = cand
+                break
+        else:
+            print(f"  aviso: trilha {roteiro['trilha']} não encontrada — sem música")
 
     if not (EDITOR / "sfx" / "whoosh.wav").exists():
         subprocess.run([sys.executable, str(EDITOR / "gerar_sfx.py")], check=True)
@@ -409,7 +416,8 @@ def main() -> None:
         print("-- vídeo")
         mudo = renderizar_planos(planos, tmp, args.rapido)
         print("-- áudio")
-        audio = renderizar_audio(planos, total, trilha, tmp)
+        audio = renderizar_audio(planos, total, trilha, tmp,
+                                 float(roteiro.get("volume_trilha", 0.35)))
         print("-- legenda e exportação")
         ass = gerar_legenda(roteiro, planos, total, tmp)
         shutil.copy(ass, saida.with_suffix(".ass"))

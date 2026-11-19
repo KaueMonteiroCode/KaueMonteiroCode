@@ -3,7 +3,7 @@
   "parte": 1,
   "titulo": "O Elevador",
   "midia": "midia/parte1",
-  "trilha": "trilha.mp3",
+  "trilha": "editor/trilhas/dorama_tensao.mp3",
   "final": "CONTINUA NA PARTE 2...",
   "planos": [
     {
@@ -45,7 +45,7 @@
       "clipe": "p1_c03.mp4",
       "teste": "cenarios/cenario_saguao.png",
       "foco_teste": 0.5,
-      "min": 3.0,
+      "min": 2.0,
       "efeitos": [
         "zoom_rapido"
       ],
@@ -343,5 +343,6 @@
       ],
       "respiro": 3.0
     }
-  ]
+  ],
+  "volume_trilha": 0.35
 }
