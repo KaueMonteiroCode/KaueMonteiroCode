@@ -47,6 +47,7 @@ Cada item de `planos` é um clipe do vídeo final, na ordem:
 | `lipsync: true` + `fala_no_clipe` | clipe com boca sincronizada: a fala entra no segundo `fala_no_clipe` do clipe (padrão 0) e o que vem antes é cortado |
 | `alinhar: "auto"` | acha a fala no áudio que o gerador criou e encaixa a voz do Fish ali (ajusta a velocidade em até ±15%) |
 | `velocidade` | 0.7 = câmera lenta (clipe 30% mais longo), 1.2 = acelerado |
+| `audio_do_clipe: true` | o clipe já vem com a voz sincronizada (lip sync feito fora): usa o som dele, a duração dele, e só coloca a legenda no trecho de fala |
 | `efeitos` | `zoom_lento`, `zoom_rapido`, `tremor`, `flash` |
 | `sfx` | lista de `{som, em, volume}`; sons em `editor/sfx/` |
 

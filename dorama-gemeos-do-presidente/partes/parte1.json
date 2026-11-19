@@ -3,7 +3,6 @@
   "parte": 1,
   "titulo": "O Elevador",
   "midia": "midia/parte1",
-  "trilha": "editor/trilhas/dorama_tensao.mp3",
   "final": "CONTINUA NA PARTE 2...",
   "planos": [
     {
@@ -362,6 +361,5 @@
       "lipsync": true,
       "fala_no_clipe": 2.0
     }
-  ],
-  "volume_trilha": 0.35
+  ]
 }

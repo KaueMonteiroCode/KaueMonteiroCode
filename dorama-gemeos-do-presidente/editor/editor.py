@@ -134,6 +134,8 @@ class Plano:
     falas: list[Fala] = field(default_factory=list)
     inicio: float = 0.0         # no vídeo final
     dur: float = 0.0
+    audio_clipe: bool = False   # voz = som do próprio clipe (lip sync feito fora)
+    corte: float = 0.0
 
 
 def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list[str]]:
@@ -210,6 +212,30 @@ def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list
 
         fim_falas = cursor + float(p.get("respiro", 0.6)) if plano.falas else 0.0
         plano.dur = round(max(float(p.get("min", 2.5)), fim_falas) * FPS) / FPS
+
+        if p.get("audio_do_clipe") and clipe:
+            # o clipe já vem com a voz sincronizada: usa o som dele e só ajusta a legenda
+            corte = float(p.get("cortar_inicio", 0.0))
+            p = {**p, "cortar_inicio": corte}
+            plano.dados = p
+            plano.audio_clipe = True
+            plano.corte = corte
+            dur_clipe = duracao(clipe) - corte
+            plano.dur = round(float(p.get("dur", dur_clipe)) * FPS) / FPS
+            trecho = fala_no_audio_do_clipe(clipe)
+            textos = [f for f in p.get("falas", []) if not f.get("junto")]
+            if trecho and textos:
+                ini, fim = trecho[0] - corte, min(trecho[1] - corte, plano.dur)
+                pesos = [max(len(f["texto"]), 1) for f in textos]
+                t, novas = ini, []
+                for f, w in zip(textos, pesos):
+                    d = (fim - ini) * w / sum(pesos)
+                    novas.append(Fala(f["texto"], f.get("quem", ""), None, 0.0, plano.dur, t, t + d))
+                    t += d
+                plano.falas = novas
+            else:
+                plano.falas = []
+                avisos.append(f"{p['id']}: não achei fala no som do clipe — sem legenda")
         plano.inicio = t_global
         t_global += plano.dur
         planos.append(plano)
@@ -300,6 +326,13 @@ def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp
     sons: list[str] = []
     k = 0
     for plano in planos:
+        if plano.audio_clipe and plano.clipe:
+            ms = int(plano.inicio * 1000)
+            entradas += ["-ss", f"{plano.corte:.3f}", "-t", f"{plano.dur:.3f}", "-i", str(plano.clipe)]
+            vozes.append(f"[{k}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
+                         f"adelay={ms}|{ms}[v{k}]")
+            k += 1
+            continue
         for f in plano.falas:
             if not f.audio:
                 continue
