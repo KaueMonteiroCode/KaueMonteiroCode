@@ -3,3 +3,4 @@ midia/**/*.mov
 saida/
 __pycache__/
 midia/**/.whisper/
+midia/**/trilha.*

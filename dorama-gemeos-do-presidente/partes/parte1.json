@@ -4,6 +4,10 @@
   "titulo": "O Elevador",
   "midia": "midia/parte1",
   "final": "CONTINUA NA PARTE 2...",
+  "trilha": "trilha.m4a",
+  "volume_trilha": 0.12,
+  "trilha_inicio": 0.0,
+  "lut": "kdrama_quente",
   "planos": [
     {
       "id": "c01",
@@ -11,6 +15,7 @@
       "clipe": "p1_c01.mp4",
       "teste": "cenarios/cenario_saguao.png",
       "min": 4.5,
+      "trilha": 1.3,
       "efeitos": ["zoom_lento"],
       "sfx": [{"som": "whoosh-cinematic", "em": 0.0, "volume": 0.6}]
     },
@@ -30,6 +35,7 @@
       "clipe": "p1_c03.mp4",
       "teste": "cenarios/cenario_saguao.png",
       "min": 2.0,
+      "trilha": 1.4,
       "efeitos": ["zoom_rapido"],
       "sfx": [{"som": "coracao", "em": 0.2}]
     },
@@ -98,6 +104,7 @@
       "clipe": "p1_c09.mp4",
       "teste": "cenarios/cenario_elevador.png",
       "min": 4.2,
+      "trilha": 1.3,
       "efeitos": ["zoom_lento"],
       "sfx": [{"som": "elevador", "em": 0.3}]
     },
@@ -107,6 +114,7 @@
       "clipe": "p1_c10.mp4",
       "teste": "cenarios/cenario_elevador.png",
       "min": 1.75,
+      "trilha": 1.3,
       "cortar_inicio": 0.0,
       "efeitos": ["zoom_rapido"],
       "sfx": [{"som": "elevador", "em": 0.0}]
@@ -162,6 +170,7 @@
       "audio_do_clipe": true,
       "cortar_inicio": 0.0,
       "efeitos": ["flash"],
+      "trilha": 1.3,
       "falas": [{"quem": "Do-hyun", "texto": "Essa pinta... Essa pinta..."}],
       "sfx": [{"som": "coracao", "em": 0.0, "volume": 0.6}]
     },
@@ -189,6 +198,7 @@
       "audio_do_clipe": true,
       "cortar_inicio": 0.0,
       "dur": 6.5,
+      "trilha": 1.5,
       "falas": [{"quem": "Do-hyun", "texto": "...Seo-yeon?"}],
       "sfx": [
         {"som": "suspense", "em": 0.0, "volume": 0.5},

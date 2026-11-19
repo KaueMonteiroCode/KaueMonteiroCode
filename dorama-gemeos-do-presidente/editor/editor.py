@@ -477,7 +477,7 @@ def achar_sfx(nome: str) -> Path | None:
 
 
 def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp: Path,
-                     vol_trilha: float = 0.35) -> Path:
+                     vol_trilha: float = 0.35, trilha_inicio: float = 0.0) -> Path:
     entradas: list[str] = []
     vozes: list[str] = []
     sons: list[str] = []
@@ -523,9 +523,14 @@ def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp
         partes.append(f"[base2]{rot_s}amix=inputs={len(sons) + 1}:normalize=0:duration=first[efx]")
         mix.append("[efx]")
     if trilha:
-        entradas += ["-stream_loop", "-1", "-i", str(trilha)]
+        # volume da música por plano: "trilha": 1.5 sobe, 0.5 abaixa (multiplica o volume_trilha do roteiro).
+        # Além disso ela abaixa sozinha quando alguém fala (sidechain com as vozes).
+        curva = "".join(f"+{float(p.dados['trilha']) - 1:.3f}*between(t,{p.inicio:.3f},{p.inicio + p.dur:.3f})"
+                        for p in planos if "trilha" in p.dados)
+        vol = f"'{vol_trilha}*(1{curva})':eval=frame" if curva else f"{vol_trilha}"
+        entradas += ["-stream_loop", "-1", "-ss", f"{trilha_inicio:.3f}", "-i", str(trilha)]
         partes.append(f"[{k}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
-                      f"atrim=0:{total:.3f},volume={vol_trilha},"
+                      f"atrim=0:{total:.3f},asetpts=PTS-STARTPTS,volume={vol},afade=t=in:d=0.6,"
                       f"afade=t=out:st={max(total - 2.5, 0):.2f}:d=2.5[mus]")
         partes.append("[mus][vozsc]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[musd]")
         mix.append("[musd]")
@@ -671,7 +676,8 @@ def main() -> None:
         mudo = renderizar_planos(planos, tmp, args.rapido, roteiro.get("lut"))
         print("-- áudio")
         audio = renderizar_audio(planos, total, trilha, tmp,
-                                 float(roteiro.get("volume_trilha", 0.35)))
+                                 float(roteiro.get("volume_trilha", 0.35)),
+                                 float(roteiro.get("trilha_inicio", 0.0)))
         print("-- legenda e exportação")
         ass = gerar_legenda(roteiro, planos, total, tmp)
         shutil.copy(ass, saida.with_suffix(".ass"))

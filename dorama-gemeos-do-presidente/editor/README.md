@@ -50,6 +50,8 @@ Cada item de `planos` é um clipe do vídeo final, na ordem:
 | `audio_do_clipe: true` | o clipe já vem com a voz sincronizada (lip sync feito fora): usa o som dele, a duração dele, e só coloca a legenda no trecho de fala |
 | `cortar_inicio: "auto"` / `dur: "auto"` | (com `audio_do_clipe`) corta o tempo morto antes da 1ª palavra e depois da última + `respiro`, pelo Whisper |
 | `lut` | no roteiro (vale pra todos) ou no plano: cor de K-drama, `kdrama_quente`, `kdrama_frio`, `kdrama_flashback` (em `editor/luts/`); `"lut": null` no plano desliga |
+| `trilha` (no roteiro) | arquivo da música em `midia/parteN/` (fora do Git); `volume_trilha` (padrão 0,35) e `trilha_inicio` (segundo da música onde começa). Abaixa sozinha quando alguém fala, entra em 0,6 s e sai em 2,5 s |
+| `trilha` (no plano) | multiplica o volume da música só naquele plano: `1.5` sobe, `0.5` abaixa |
 | `efeitos` | `zoom_lento`, `zoom_rapido`, `tremor`, `flash` |
 | `sfx` | lista de `{som, em, volume}`; sons em `editor/sfx/` ou na biblioteca extra `sfx/` (fora do Git: Kenney CC0, Pixabay), pelo nome do arquivo sem extensão |
 

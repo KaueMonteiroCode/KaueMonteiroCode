@@ -27,7 +27,9 @@ Série de **dorama coreano gerado por IA, dublado em português**, para TikTok: 
 - **Você (Claude)**: roteiros, prompts e a **edição final com o editor** (Python + FFmpeg).
 
 ## Decisões já tomadas (não mudar sem eu pedir)
-1. **Sem música de fundo** no editor — eu coloco a trilha depois no CapCut.
+1. ~~Sem música de fundo no editor~~ **Mudou em 19/11:** a trilha entra no editor (`"trilha"` no roteiro, abaixa
+   sozinha na fala, volume por plano). O som do gerador sai: `ferramentas.py preparar` deixa só a voz (Demucs),
+   tira a marca "Ai" do canto e dá nitidez nos clipes 720p. Ao postar, continuar marcando "conteúdo gerado por IA".
 2. **Não tente sincronizar boca por conta própria.** Tentou-se encaixar a voz olhando a boca quadro a quadro e ficou ruim. Os clipes com fala chegam com lip sync feito por mim: use `"audio_do_clipe": true` no plano (o editor usa o som do próprio clipe, só corta tempo morto com `cortar_inicio`/`dur` e põe a legenda no trecho de fala).
 3. Prompts de animação: **só uma pessoa fala por vez** ("ONLY X speaks... The others keep their mouths closed").
 4. Nada de copiar personagens ou roteiro de outros criadores; marcar "conteúdo gerado por IA" ao postar; nada romântico físico envolvendo as crianças.
