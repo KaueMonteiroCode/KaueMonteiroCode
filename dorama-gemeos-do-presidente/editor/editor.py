@@ -125,10 +125,17 @@ def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list
             else:
                 avisos.append(f"{p['id']}: clipe {p['clipe']} ausente → usando imagem de teste")
             clipe = None
-        plano = Plano(p["id"], p, clipe, teste)
 
-        # clipe com lip sync: a fala já começa no 0 s do vídeo, não pode atrasar
-        cursor = 0.0 if p.get("lipsync") else float(p.get("entrada", 0.35))
+        # clipe com lip sync: a fala tem que cair exatamente onde a boca mexe.
+        # "fala_no_clipe" = segundo em que a fala começa dentro do clipe original;
+        # o editor corta o que vier antes (deixando 0,25 s de respiro).
+        if p.get("lipsync"):
+            t_fala = float(p.get("fala_no_clipe", 0.0))
+            p = {**p, "cortar_inicio": max(t_fala - 0.25, 0.0)}
+            cursor = t_fala - p["cortar_inicio"]
+        else:
+            cursor = float(p.get("entrada", 0.35))
+        plano = Plano(p["id"], p, clipe, teste)
         ultimo_ini = cursor
         for f in p.get("falas", []):
             arq = midia / f["audio"]
@@ -169,7 +176,7 @@ def filtro_visual(plano: Plano, rapido: bool) -> tuple[list[str], str]:
     WW, HH = W * escala, H * escala
 
     if plano.clipe:
-        corte = 0.0 if plano.dados.get("lipsync") else float(plano.dados.get("cortar_inicio", 0.3))
+        corte = float(plano.dados.get("cortar_inicio", 0.3))
         entrada = ["-ss", f"{corte:.2f}", "-i", str(plano.clipe)]
         base = (f"scale={WW}:{HH}:force_original_aspect_ratio=increase,"
                 f"crop={WW}:{HH},fps={FPS},setsar=1,"

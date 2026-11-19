@@ -44,7 +44,7 @@ Cada item de `planos` é um clipe do vídeo final, na ordem:
 | `min` | duração mínima do plano (planos sem fala) |
 | `respiro` | pausa depois da última fala (padrão 0,6 s) |
 | `cortar_inicio` | segundos cortados do começo do clipe (padrão 0,3 s — tira o quadro parado) |
-| `lipsync: true` | clipe com boca sincronizada: não corta o começo e a fala entra no 0 s |
+| `lipsync: true` + `fala_no_clipe` | clipe com boca sincronizada: a fala entra no segundo `fala_no_clipe` do clipe (padrão 0) e o que vem antes é cortado |
 | `efeitos` | `zoom_lento`, `zoom_rapido`, `tremor`, `flash` |
 | `sfx` | lista de `{som, em, volume}`; sons em `editor/sfx/` |
 
