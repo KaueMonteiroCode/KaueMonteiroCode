@@ -318,3 +318,26 @@ Emotional K-drama climax. No text.
 ---
 
 **Total: 17 quadros no ChatGPT + 17 animações no Grok.** Pode mandar em lotes (ex.: cena 1 inteira); o editor monta com o que tiver e completa o resto com as fichas.
+
+---
+
+# ✅ Prompts B novos — "só uma pessoa fala" (substituem os B acima)
+
+Sem lip sync: o gerador já faz **só aquela pessoa** falar a frase; o editor acha a fala no áudio
+do clipe e encaixa a voz do Fish ali (`"alinhar": "auto"` no roteiro). Os quadros (prompt A) continuam iguais.
+
+| Clipe | Prompt B |
+|---|---|
+| c06 | `The twin girl and twin boy sitting on the bench say together in Portuguese "Tá bom, mamãe." with an overly innocent smile, both mouths moving in sync, then they turn and exchange a sneaky secret look. Static camera. No text.` |
+| c07 | `The twins run hand in hand toward the golden elevator. First ONLY the boy shouts in Portuguese "Se ele é o nosso pai, eu vou perguntar pra ele!", then ONLY the girl laughs and shouts "Espera eu, Ha-jun!". Tracking camera at child height. No text.` |
+| c08 | `Slow-motion: the CEO walks toward the camera buttoning his jacket. ONLY he speaks, coldly, in Portuguese: "Cancela a reunião das dez. Eu não tenho tempo pra incompetência." The executives behind him stay silent with closed mouths. Symmetrical dolly-back camera. No text.` |
+| c11 | `High-angle shot. ONLY the tall man speaks, dry and impatient, in Portuguese: "Cadê os pais de vocês?". The two kids keep their mouths closed, just looking up at him. Static camera. No text.` |
+| c12 | `ONLY the little girl speaks, sweetly, raising her panda, in Portuguese: "A gente tá procurando o nosso agora." Natural lip movements, head tilt. Warm golden light. No text.` |
+| c13 | `ONLY the little boy speaks, arms crossed like a grown-up, in Portuguese: "Moço... por que você tem a minha cara?" Serious face, natural lip movements. Static camera. No text.` |
+| c14 | `Close-up. ONLY the man speaks, quietly, with a tiny amused half-smile, in Portuguese: "Eu é que pergunto, garoto." Subtle push-in. No text.` |
+| c15 | `Extreme slow push-in on the two faces side by side showing the identical mole. ONLY the man whispers in Portuguese: "Essa pinta..." The boy keeps his mouth closed. Tense, cinematic. No text.` |
+| c16 | `The golden elevator doors slide open. ONLY the young mother shouts in panic in Portuguese: "Ha-jun! Ha-eun!" and reaches forward. Dramatic, realistic. No text.` |
+| c17 | `The man and the woman lock eyes in shock. The woman keeps her mouth closed. After a pause, ONLY the man whispers in Portuguese: "...Seo-yeon?" Slow push-in, then a dramatic frozen stare. No text.` |
+
+**Importante:** gere com **som ligado** (se a plataforma tiver opção de áudio/fala) — é pelo som que o editor acha onde a boca mexe.
+Se o clipe vier sem som, me avisa qual é que eu encaixo na mão.

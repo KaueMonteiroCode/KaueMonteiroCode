@@ -75,6 +75,29 @@ def trecho_de_fala(arq: Path) -> tuple[float, float]:
     return ini, fim
 
 
+def fala_no_audio_do_clipe(clipe: Path) -> tuple[float, float] | None:
+    """Onde o personagem fala dentro do clipe gerado (pelo áudio que o gerador criou).
+    Devolve (início, fim) em segundos, ou None se o clipe não tiver áudio útil."""
+    tem_audio = rodar(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries",
+                       "stream=index", "-of", "csv=p=0", str(clipe)]).strip()
+    if not tem_audio:
+        return None
+    total = duracao(clipe)
+    out = rodar(["ffmpeg", "-hide_banner", "-i", str(clipe), "-vn", "-af",
+                 "highpass=f=250,lowpass=f=3500,silencedetect=n=-35dB:d=0.3",
+                 "-f", "null", "-"])
+    ini = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", out)]
+    fim = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", out)]
+    if len(fim) < len(ini):
+        fim.append(total)
+    silencios = list(zip(ini, fim))
+    on = silencios[0][1] if silencios and silencios[0][0] <= 0.05 else 0.0
+    off = silencios[-1][0] if silencios and silencios[-1][1] >= total - 0.05 else total
+    if off - on < 0.4:
+        return None          # quase nada de voz: não dá para confiar
+    return on, off
+
+
 def estimar_fala(texto: str) -> float:
     return 0.45 + 0.34 * len(texto.split()) + 0.4 * texto.count("...")
 
@@ -92,6 +115,7 @@ class Fala:
     voz_ini: float = 0.0
     voz_fim: float = 0.0
     legenda: bool = True
+    tempo: float = 1.0          # atempo aplicado à voz (encaixe na boca do clipe)
 
 
 @dataclass
@@ -129,6 +153,15 @@ def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list
         # clipe com lip sync: a fala tem que cair exatamente onde a boca mexe.
         # "fala_no_clipe" = segundo em que a fala começa dentro do clipe original;
         # o editor corta o que vier antes (deixando 0,25 s de respiro).
+        alinhado = None
+        if p.get("alinhar") == "auto" and clipe:
+            alinhado = fala_no_audio_do_clipe(clipe)
+            if alinhado:
+                avisos_alinhar = f"{p['id']}: fala achada no clipe em {alinhado[0]:.2f}–{alinhado[1]:.2f}s"
+                avisos.append(avisos_alinhar)
+                p = {**p, "lipsync": True, "fala_no_clipe": alinhado[0]}
+            else:
+                avisos.append(f"{p['id']}: clipe sem áudio de fala — encaixe padrão")
         if p.get("lipsync"):
             t_fala = float(p.get("fala_no_clipe", 0.0))
             p = {**p, "cortar_inicio": max(t_fala - 0.25, 0.0)}
@@ -147,6 +180,18 @@ def montar_linha_do_tempo(roteiro: dict, midia: Path) -> tuple[list[Plano], list
                 avisos.append(f"{p['id']}: áudio {f['audio']} ausente → silêncio estimado")
                 fala.dur = estimar_fala(f["texto"])
                 fala.voz_ini, fala.voz_fim = 0.0, fala.dur
+            if alinhado and not plano.falas and fala.audio:
+                voz = fala.voz_fim - fala.voz_ini
+                boca = alinhado[1] - alinhado[0]
+                if len([x for x in p.get("falas", []) if not x.get("junto")]) == 1 and voz > 0 and boca > 0:
+                    t = voz / boca
+                    if 0.85 <= t <= 1.15:
+                        fala.tempo = t
+                fala.dur /= fala.tempo
+                fala.voz_ini /= fala.tempo
+                fala.voz_fim /= fala.tempo
+                # a voz (não o arquivo) começa junto com a boca
+                cursor = max(cursor - fala.voz_ini, 0.0)
             if f.get("junto"):
                 fala.inicio = ultimo_ini
                 fala.legenda = False
@@ -251,7 +296,8 @@ def renderizar_audio(planos: list[Plano], total: float, trilha: Path | None, tmp
                 continue
             ms = int((plano.inicio + f.inicio) * 1000)
             entradas += ["-i", str(f.audio)]
-            vozes.append(f"[{k}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
+            vel = f"atempo={f.tempo:.4f}," if abs(f.tempo - 1) > 0.005 else ""
+            vozes.append(f"[{k}:a]aformat=sample_rates=48000:channel_layouts=stereo,{vel}"
                          f"adelay={ms}|{ms}[v{k}]")
             k += 1
         for s in plano.dados.get("sfx", []):

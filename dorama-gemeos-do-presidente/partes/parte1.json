@@ -110,7 +110,8 @@
           "junto": true
         }
       ],
-      "respiro": 1.4
+      "respiro": 1.4,
+      "alinhar": "auto"
     },
     {
       "id": "c07",
@@ -138,7 +139,8 @@
           "som": "whoosh",
           "em": 0.0
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c08",
@@ -163,7 +165,8 @@
           "som": "impacto",
           "em": 0.0
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c09",
@@ -210,7 +213,8 @@
           "quem": "Do-hyun",
           "texto": "Cadê os pais de vocês?"
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c12",
@@ -224,7 +228,8 @@
           "quem": "Ha-eun",
           "texto": "A gente tá procurando o nosso agora."
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c13",
@@ -238,7 +243,8 @@
           "quem": "Ha-jun",
           "texto": "Moço... por que você tem a minha cara?"
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c14",
@@ -255,7 +261,8 @@
           "quem": "Do-hyun",
           "texto": "Eu é que pergunto, garoto."
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c15",
@@ -281,7 +288,8 @@
           "som": "coracao",
           "em": 0.0
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c16",
@@ -309,7 +317,8 @@
           "som": "whoosh",
           "em": 0.2
         }
-      ]
+      ],
+      "alinhar": "auto"
     },
     {
       "id": "c17",
@@ -341,7 +350,8 @@
           "em": 2.6
         }
       ],
-      "respiro": 3.0
+      "respiro": 3.0,
+      "alinhar": "auto"
     }
   ],
   "volume_trilha": 0.35
