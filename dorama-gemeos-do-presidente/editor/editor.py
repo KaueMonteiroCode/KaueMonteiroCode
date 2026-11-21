@@ -418,6 +418,8 @@ def filtro_visual(plano: Plano, rapido: bool) -> tuple[list[str], str]:
         cadeia.append(
             "crop=iw-48:ih-48:x='24+16*sin(t*57)*lt(t,0.8)':y='24+16*cos(t*43)*lt(t,0.8)',"
             f"scale={W}:{H}")
+    if "pb" in efeitos:                   # preto e branco (lembrança / "anteriormente")
+        cadeia.append("hue=s=0,eq=contrast=1.12:brightness=-0.02")
     if "flash" in efeitos:
         cadeia.append("fade=t=in:st=0:d=0.35:color=white")
     cadeia.append(f"trim=end_frame={n},setpts=PTS-STARTPTS,format=yuv420p")
@@ -465,9 +467,10 @@ def renderizar_planos(planos: list[Plano], tmp: Path, rapido: bool, lut_padrao: 
 
 def achar_sfx(nome: str) -> Path | None:
     """editor/sfx/<nome>.wav|mp3|ogg; se não tiver, procura na biblioteca extra (pasta sfx/ fora do Git)."""
-    for ext in (".wav", ".mp3", ".ogg"):
-        if (EDITOR / "sfx" / f"{nome}{ext}").exists():
-            return EDITOR / "sfx" / f"{nome}{ext}"
+    for pasta in ("sfx", "trilhas"):          # trilhas/ = temas curtos gerados (ex.: romance)
+        for ext in (".wav", ".mp3", ".ogg"):
+            if (EDITOR / pasta / f"{nome}{ext}").exists():
+                return EDITOR / pasta / f"{nome}{ext}"
     if SFX_BIBLIOTECA:
         for ext in (".wav", ".mp3", ".ogg"):
             achados = sorted(SFX_BIBLIOTECA.rglob(f"{nome}{ext}"))
