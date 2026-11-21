@@ -53,6 +53,8 @@ Cada item de `planos` é um clipe do vídeo final, na ordem:
 | `trilha` (no roteiro) | arquivo da música em `midia/parteN/` (fora do Git); `volume_trilha` (padrão 0,35) e `trilha_inicio` (segundo da música onde começa). Abaixa sozinha quando alguém fala, entra em 0,6 s e sai em 2,5 s |
 | `trilha` (no plano) | multiplica o volume da música só naquele plano: `1.5` sobe, `0.5` abaixa |
 | `efeitos` | `zoom_lento`, `zoom_rapido`, `tremor`, `flash` |
+| `sobrepor` | lista de `{arquivo, em}`: animação com fundo transparente (`.mov` ProRes 4444 ou `.webm` VP9, feita no HyperFrames/Remotion) por cima do plano, `em` segundos depois do começo dele; o arquivo é procurado em `midia/parteN/` e depois a partir da pasta da série. Pode passar do fim do plano |
+| `entrada` | (falas com áudio) segundo do plano em que a primeira fala começa (padrão 0,35) |
 | `sfx` | lista de `{som, em, volume}`; sons em `editor/sfx/` ou na biblioteca extra `sfx/` (fora do Git: Kenney CC0, Pixabay), pelo nome do arquivo sem extensão |
 
 **Legenda pelo Whisper:** se o editor rodar com o Python que tem o `faster-whisper` (o `.venv` da pasta do

@@ -634,6 +634,29 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     return arq
 
 
+def sobreposicoes(planos: list[Plano], midia: Path, legenda: str) -> tuple[list[str], str]:
+    """Animações com fundo transparente (.mov/.webm feitos no HyperFrames/Remotion) por cima do vídeo.
+    No plano: "sobrepor": [{"arquivo": "...", "em": 0.4}] — "em" conta do começo do plano.
+    O arquivo é procurado em midia/parteN/ e depois a partir da pasta da série."""
+    entradas: list[str] = []
+    cadeia = ["[0:v]null[b0]"]
+    k = 0
+    for plano in planos:
+        for s in plano.dados.get("sobrepor", []):
+            arq = next((c for c in (midia / s["arquivo"], RAIZ / s["arquivo"]) if c.exists()), None)
+            if not arq:
+                print(f"  aviso: animação {s['arquivo']} não encontrada")
+                continue
+            t = plano.inicio + float(s.get("em", 0))
+            dec = ["-c:v", "libvpx-vp9"] if arq.suffix.lower() == ".webm" else []   # vp9 com alfa
+            entradas += ["-itsoffset", f"{t:.3f}", *dec, "-i", str(arq)]
+            cadeia.append(f"[{k + 2}:v]fps={FPS},format=rgba[o{k}];"
+                          f"[b{k}][o{k}]overlay=eof_action=pass:format=auto[b{k + 1}]")
+            k += 1
+    cadeia.append(f"[b{k}]{legenda}[vout]")
+    return entradas, ";".join(cadeia)
+
+
 # ---------------------------------------------------------------- principal
 
 
@@ -683,8 +706,9 @@ def main() -> None:
         shutil.copy(ass, saida.with_suffix(".ass"))
         # caminhos relativos no filtro de legenda: no Windows o "C:" quebra o filtro
         shutil.copytree(EDITOR / "fonts", tmp / "fonts", dirs_exist_ok=True)
-        rodar(["ffmpeg", "-v", "error", "-y", "-i", str(mudo), "-i", str(audio),
-               "-vf", f"subtitles={ass.name}:fontsdir=fonts",
+        entradas, filtro = sobreposicoes(planos, midia, f"subtitles={ass.name}:fontsdir=fonts")
+        rodar(["ffmpeg", "-v", "error", "-y", "-i", str(mudo), "-i", str(audio), *entradas,
+               "-filter_complex", filtro, "-map", "[vout]", "-map", "1:a",
                "-c:v", "libx264", "-preset", "veryfast" if args.rapido else "medium",
                "-crf", "20" if args.rapido else "18", "-pix_fmt", "yuv420p", "-r", str(FPS),
                "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
