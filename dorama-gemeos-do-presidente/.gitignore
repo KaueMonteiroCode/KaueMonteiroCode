@@ -1,6 +1,0 @@
-midia/**/*.mp4
-midia/**/*.mov
-saida/
-__pycache__/
-midia/**/.whisper/
-midia/**/trilha.*
